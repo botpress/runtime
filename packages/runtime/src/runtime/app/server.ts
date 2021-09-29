@@ -11,12 +11,14 @@ import _ from 'lodash'
 import ms from 'ms'
 import portFinder from 'portfinder'
 import { TYPES } from 'runtime/app/types'
+import { BotService } from 'runtime/bots'
 import { ConfigProvider } from 'runtime/config'
 import { ConverseService } from 'runtime/converse'
 import { EventEngine, EventRepository } from 'runtime/events'
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { MessagingRouter, MessagingService } from 'runtime/messaging'
 import yn from 'yn'
+import { ManageRouter } from './manage-router'
 
 import { debugRequestMw } from './server-utils'
 
@@ -35,7 +37,8 @@ export class HTTPServer {
     @inject(TYPES.EventEngine) private eventEngine: EventEngine,
     @inject(TYPES.EventRepository) private eventRepo: EventRepository,
     @inject(TYPES.ConverseService) private converseService: ConverseService,
-    @inject(TYPES.MessagingService) private messaging: MessagingService
+    @inject(TYPES.MessagingService) private messaging: MessagingService,
+    @inject(TYPES.BotService) private botService: BotService
   ) {
     this.app = express()
 
@@ -106,10 +109,11 @@ export class HTTPServer {
     this.messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
     this.messagingRouter.setupRoutes(this.app)
 
-    this.app.use('/api/v1/chat', this.messagingRouter.router)
+    const manageRouter = new ManageRouter(this.logger, this.botService, this)
+    manageRouter.setupRoutes()
+    this.app.use('/manage', manageRouter.router)
 
-    // Import bot
-    // delete bot
+    this.app.use('/api/v1/chat', this.messagingRouter.router)
 
     // Will disappear
     this.app.post('/converse/:botId/sendMessage/:userId', async (req, res, next) => {

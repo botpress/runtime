@@ -2,10 +2,10 @@ import 'bluebird-global'
 // eslint-disable-next-line import/order
 import '../../sdk/rewire'
 import sdk from 'botpress/sdk'
-import { RuntimeSetup } from 'index'
-import _ from 'lodash'
 import { BotpressApp, createApp, createLoggerProvider } from 'runtime/app/core-loader'
 import { LoggerProvider } from 'runtime/logger'
+
+import { showBanner } from './banner'
 
 async function setupEnv(app: BotpressApp) {
   await app.database.initialize()
@@ -50,22 +50,24 @@ async function setupDebugLogger(provider: LoggerProvider) {
   }
 }
 
-export async function start(config: RuntimeSetup) {
+export async function start() {
   await setupDebugLogger(createLoggerProvider())
-
   const app = createApp()
 
   await setupEnv(app)
 
   const logger = await getLogger(app.logger, 'Launcher')
 
-  // showBanner({ title: 'Botpress Runtime', version: sdk.version, logScopeLength: 9, bannerWidth: 75, logger })
+  showBanner({ title: 'Botpress Runtime', version: sdk.version, logScopeLength: 9, bannerWidth: 75, logger })
 
-  return app.botpress.start(config).catch(err => {
+  await app.botpress.start().catch(err => {
     logger.attachError(err).error('Error starting Botpress')
 
     if (!process.IS_FAILSAFE) {
       process.exit(1)
     }
   })
+
+  // logger.info(`Botpress is listening at: ${process.LOCAL_URL}`)
+  logger.info(`Botpress is exposed at: ${process.EXTERNAL_URL}`)
 }

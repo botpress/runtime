@@ -29,7 +29,7 @@ export class MessagingService {
     this.isExternal = Boolean(process.core_env.MESSAGING_ENDPOINT)
   }
 
-  async initialize(messagingEndpoint) {
+  async initialize() {
     this.eventEngine.register({
       name: 'messaging.sendOut',
       description: 'Sends outgoing messages to external messaging',
@@ -38,7 +38,7 @@ export class MessagingService {
       handler: this.handleOutgoingEvent.bind(this)
     })
 
-    this.messagingEndpoint = messagingEndpoint
+    //this.messagingEndpoint = messagingEndpoint
     this.internalPassword = this.isExternal ? undefined : process.INTERNAL_PASSWORD
     this.clientSync = new MessagingClient({ url: this.messagingEndpoint, password: this.internalPassword })
   }
