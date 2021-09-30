@@ -15,6 +15,7 @@ import { GhostService } from 'runtime/bpfs'
 import { CMSService } from 'runtime/cms'
 import { ConfigProvider } from 'runtime/config'
 import { JobService, makeRedisKey } from 'runtime/distributed'
+import { MessagingService } from 'runtime/messaging'
 import { Hooks, HookService } from 'runtime/user-code'
 import tmp from 'tmp'
 import { ComponentService } from './component-service'
@@ -44,7 +45,8 @@ export class BotService {
     @inject(TYPES.CMSService) private cms: CMSService,
     @inject(TYPES.GhostService) private ghostService: GhostService,
     @inject(TYPES.HookService) private hookService: HookService,
-    @inject(TYPES.JobService) private jobService: JobService
+    @inject(TYPES.JobService) private jobService: JobService,
+    @inject(TYPES.MessagingService) private messagingService: MessagingService
   ) {
     this._botIds = undefined
     this.componentService = new ComponentService(this.logger, this.ghostService, this.cms)
@@ -264,6 +266,7 @@ export class BotService {
         throw new Error('Supported languages must include the default language of the bot')
       }
 
+      await this.messagingService.loadMessagingForBot(botId)
       await this.cms.loadContentTypesFromFiles(botId)
       await this.componentService.extractBotComponents(botId)
 
@@ -303,6 +306,7 @@ export class BotService {
     }
 
     await this.cms.clearElementsFromCache(botId)
+    await this.messagingService.unloadMessagingForBot(botId)
 
     const api = await createForGlobalHooks()
     await this.hookService.executeHook(new Hooks.AfterBotUnmount(api, botId))

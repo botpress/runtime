@@ -9,10 +9,19 @@ import { BotService } from 'runtime/bots'
 export class ManageRouter extends CustomRouter {
   constructor(private logger: sdk.Logger, private botService: BotService, private http: HTTPServer) {
     super('ManageRouter', logger, Router({ mergeParams: true }))
+    this.setupRoutes()
   }
 
   public setupRoutes(): void {
-    this.router.post(
+    const router = this.router.use((req, res, next) => {
+      if (!process.env.MANAGE_API_KEY || req.headers['x-api-key'] === process.env.MANAGE_API_KEY) {
+        return next()
+      }
+
+      next(new Error('Invalid API Key'))
+    })
+
+    router.post(
       '/:botId/import',
       this.asyncMiddleware(async (req, res) => {
         if (!req.is('application/tar+gzip')) {
@@ -28,7 +37,7 @@ export class ManageRouter extends CustomRouter {
       })
     )
 
-    this.router.post(
+    router.post(
       '/:botId/delete',
       this.asyncMiddleware(async (req, res) => {
         const { botId } = req.params

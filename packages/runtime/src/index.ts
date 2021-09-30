@@ -1,12 +1,12 @@
 global['NativePromise'] = global.Promise
 
 import 'reflect-metadata'
-import getos from 'common/getos'
 import { EventEmitter2 } from 'eventemitter2'
 import fs from 'fs'
 import path from 'path'
 import yargs from 'yargs'
 import yn from 'yn'
+import getos from './common/getos'
 import { Debug } from './debug'
 
 const printPlainError = err => {
@@ -72,7 +72,6 @@ try {
     defaultVerbosity = Number(process.env.VERBOSITY_LEVEL)
   }
 
-  process.IS_PRO_AVAILABLE = fs.existsSync(path.resolve(process.PROJECT_LOCATION, 'pro')) || !!process.pkg
   process.DISABLE_GLOBAL_SANDBOX = yn(process.env.DISABLE_GLOBAL_SANDBOX)
   process.DISABLE_BOT_SANDBOX = yn(process.env.DISABLE_BOT_SANDBOX)
   process.DISABLE_TRANSITION_SANDBOX = yn(process.env.DISABLE_TRANSITION_SANDBOX)
@@ -80,25 +79,7 @@ try {
   process.IS_LICENSED = true
   process.ASSERT_LICENSED = () => {}
   process.BPFS_STORAGE = process.core_env.BPFS_STORAGE || 'disk'
-
-  const configPath = path.join(process.PROJECT_LOCATION, '/data/global/botpress.config.json')
-
-  // We can't move this in bootstrap because process.IS_PRO_ENABLED is necessary for other than default CLI command
-  if (process.IS_PRO_AVAILABLE) {
-    process.CLUSTER_ENABLED = yn(process.env.CLUSTER_ENABLED)
-
-    if (process.env.PRO_ENABLED === undefined && process.env.BP_CONFIG_PRO_ENABLED === undefined) {
-      if (fs.existsSync(configPath)) {
-        const config = require(configPath)
-        process.IS_PRO_ENABLED = config.pro && config.pro.enabled
-      }
-    } else {
-      process.IS_PRO_ENABLED = yn(process.env.PRO_ENABLED) || yn(process.env.BP_CONFIG_PRO_ENABLED)
-    }
-  }
-
-  process.IS_PRODUCTION = yn(process.env.BP_PRODUCTION) || yn(process.env.CLUSTER_ENABLED)
-  process.VERBOSITY_LEVEL = defaultVerbosity
+  process.CLUSTER_ENABLED = yn(process.env.CLUSTER_ENABLED)
 
   yargs
     .command(
@@ -114,9 +95,7 @@ try {
       },
       async argv => {
         process.IS_PRODUCTION = argv.production || yn(process.env.BP_PRODUCTION) || yn(process.env.CLUSTER_ENABLED)
-
         process.VERBOSITY_LEVEL = argv.verbose ? Number(argv.verbose) : defaultVerbosity
-
         process.distro = await getos()
 
         const { start } = require('./runtime/app/bootstrap')

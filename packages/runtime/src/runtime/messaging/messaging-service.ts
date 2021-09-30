@@ -38,9 +38,7 @@ export class MessagingService {
       handler: this.handleOutgoingEvent.bind(this)
     })
 
-    //this.messagingEndpoint = messagingEndpoint
-    this.internalPassword = this.isExternal ? undefined : process.INTERNAL_PASSWORD
-    this.clientSync = new MessagingClient({ url: this.messagingEndpoint, password: this.internalPassword })
+    this.clientSync = new MessagingClient({ url: process.core_env.MESSAGING_ENDPOINT! })
   }
 
   async loadMessagingForBot(botId: string) {
@@ -78,8 +76,7 @@ export class MessagingService {
     }
 
     const botClient = new MessagingClient({
-      url: this.messagingEndpoint,
-      password: this.internalPassword,
+      url: process.core_env.MESSAGING_ENDPOINT!,
       auth: { clientId: messaging.id!, clientToken: messaging.token! }
     })
     this.clientsByBotId[botId] = botClient

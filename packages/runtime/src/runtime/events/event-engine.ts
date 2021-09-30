@@ -4,7 +4,6 @@ import joi from 'joi'
 import _ from 'lodash'
 import { TYPES } from 'runtime/app/types'
 import { WellKnownFlags } from 'runtime/dialog'
-import { incrementMetric } from 'runtime/health'
 import { TimedPerfCounter } from 'runtime/misc/timed-perf'
 import { VError } from 'verror'
 import yn from 'yn'
@@ -109,7 +108,6 @@ export class EventEngine {
     @inject(TYPES.EventCollector) private eventCollector: EventCollector
   ) {
     this.incomingQueue.subscribe(async (event: sdk.IO.IncomingEvent) => {
-      await this._infoMiddleware(event)
       this.onBeforeIncomingMiddleware && (await this.onBeforeIncomingMiddleware(event))
       const { incoming } = await this.getBotMiddlewareChains(event.botId)
       await incoming.run(event)
@@ -191,11 +189,9 @@ export class EventEngine {
 
     if (isIncoming(event)) {
       debugIncoming.forBot(event.botId, 'send ', event)
-      incrementMetric('eventsIn.count')
       await this.incomingQueue.enqueue(event, 1, false)
     } else {
       debugOutgoing.forBot(event.botId, 'send ', event)
-      incrementMetric('eventsOut.count')
       await this.outgoingQueue.enqueue(event, 1, false)
     }
   }
@@ -248,24 +244,6 @@ export class EventEngine {
     const result = joi.validate(middleware, mwSchema)
     if (result.error) {
       throw new VError(result.error, 'Invalid middleware definition')
-    }
-  }
-
-  private async _infoMiddleware(event: sdk.IO.Event) {
-    const sendText = async text => {
-      await this.replyToEvent(event, [{ text, markdown: true }])
-      event.setFlag(WellKnownFlags.SKIP_DIALOG_ENGINE, true)
-    }
-
-    if (event.preview === 'BP_VERSION') {
-      await sendText(`Version: ${process.BOTPRESS_VERSION}`)
-    } else if (event.preview === 'BP_LICENSE') {
-      await sendText(
-        `**Botpress Pro**
-Available: ${process.IS_PRO_AVAILABLE}
-Enabled: ${process.IS_PRO_ENABLED}
-Licensed: ${process.IS_LICENSED}`
-      )
     }
   }
 }

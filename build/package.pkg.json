@@ -7,27 +7,11 @@
   "private": true,
   "pkg": {
     "targets": ["node12-win32-x64", "node12-linux-x64", "node12-macos-x64"],
-    "scripts": [
-      "./core/**/*.js",
-      "./admin/**/*.js",
-      "./studio/**/*.js",
-      "./orchestrator/*.js",
-      "./*.js",
-      "./pro/**/*.js",
-      "./common/**/*.js",
-      "./nlu/ml/**/*.js",
-      "./nlu/engine/**/*.js",
-      "./migrations/**/*.js"
-    ],
+    "scripts": ["./runtime/**/*.js", "./*.js", "./common/**/*.js"],
     "assets": [
       "../../../node_modules/vm2/lib/*.js",
       "../../../node_modules/xml-encryption/lib/templates/*.tpl.xml",
-      "./admin/ui/**",
-      "./ui-lite/**",
-      "./core/config/schemas/**",
-      "./ml/bin/**",
-      "./nlu/engine/assets/pre-trained/**",
-      "./nlu/engine/assets/stop-words/**"
+      "./runtime/config/schemas/**"
     ]
   }
 }

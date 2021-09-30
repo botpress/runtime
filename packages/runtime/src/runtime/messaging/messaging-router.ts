@@ -11,17 +11,21 @@ import { MessagingService } from './messaging-service'
 export class MessagingRouter extends CustomRouter {
   constructor(private logger: sdk.Logger, private messaging: MessagingService, private http: HTTPServer) {
     super('Messaging', logger, Router({ mergeParams: true }))
+    this.setupRoutes()
   }
 
-  public setupRoutes(router): void {
-    router.post(
+  public setupRoutes(): void {
+    this.router.post(
       '/receive',
       this.asyncMiddleware(async (req, res, next) => {
-        if (!this.messaging.isExternal && req.headers.password !== process.INTERNAL_PASSWORD) {
-          return next?.(new Error('Password is missing or invalid'))
+        const msg = await joi.validate<ReceiveRequest>(req.body, ReceiveSchema)
+
+        if (!this.messaging.isExternal) {
+          return next?.(new Error('Messaging must be external'))
         } else if (
           this.messaging.isExternal &&
-          req.headers['x-webhook-token'] !== this.messaging.getWebhookToken(req?.body?.client?.id)
+          (!req.headers['x-webhook-token'] ||
+            req.headers['x-webhook-token'] !== this.messaging.getWebhookToken(msg.data.clientId))
         ) {
           return next?.(new Error('Invalid webhook token'))
         }
@@ -35,8 +39,6 @@ export class MessagingRouter extends CustomRouter {
         } catch (err) {
           throw new Error('Invalid payload')
         }
-
-        const msg = req.body as ReceiveRequest
 
         await this.messaging.receive({
           clientId: msg.data.clientId,

@@ -19,6 +19,7 @@ import { QnaService } from 'runtime/qna'
 import { Hooks, HookService } from 'runtime/user-code'
 
 import { setDebugScopes } from '../../debug'
+import { createForGlobalHooks } from './api'
 import { HTTPServer } from './server'
 import { TYPES } from './types'
 
@@ -76,6 +77,9 @@ export class Botpress {
     await this.discoverBots(bots)
 
     AppLifecycle.setDone(AppLifecycleEvents.BOTPRESS_READY)
+
+    this.api = await createForGlobalHooks()
+    await this.hookService.executeHook(new Hooks.AfterServerStart(this.api))
   }
 
   async restoreDebugScope() {

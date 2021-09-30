@@ -1,12 +1,14 @@
 
 ### Import a bot
-POST http://localhost:3000/manage/welcome-bot/import
+POST http://localhost:3000/manage/welcome_bot/import
+X-Api-Key: abc123
 Content-Type: application/tar+gzip
 
 < ./bots/welcome_bot.tgz
 
 ### Delete bot
-POST http://localhost:3000/manage/welcome-bot/delete
+POST http://localhost:3000/manage/welcome_bot/delete
+X-Api-Key: abc123
 Content-Type: application/json
 
 {
@@ -14,13 +16,3 @@ Content-Type: application/json
   "text": "text"
 }
 
-
-
-### Converse
-POST http://localhost:3000/converse/welcome/sendMessage/hello
-Content-Type: application/json
-
-{
-  "type": "text",
-  "text": "text"
-}

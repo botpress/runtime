@@ -18,8 +18,8 @@ import { EventEngine, EventRepository } from 'runtime/events'
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { MessagingRouter, MessagingService } from 'runtime/messaging'
 import yn from 'yn'
-import { ManageRouter } from './manage-router'
 
+import { ManageRouter } from './manage-router'
 import { debugRequestMw } from './server-utils'
 
 @injectable()
@@ -27,7 +27,6 @@ export class HTTPServer {
   public httpServer!: Server
   public readonly app: express.Express
   private isBotpressReady = false
-  private messagingRouter!: MessagingRouter
 
   constructor(
     @inject(TYPES.ConfigProvider) private configProvider: ConfigProvider,
@@ -106,29 +105,11 @@ export class HTTPServer {
       )
     }
 
-    this.messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
-    this.messagingRouter.setupRoutes(this.app)
-
     const manageRouter = new ManageRouter(this.logger, this.botService, this)
-    manageRouter.setupRoutes()
     this.app.use('/manage', manageRouter.router)
 
-    this.app.use('/api/v1/chat', this.messagingRouter.router)
-
-    // Will disappear
-    this.app.post('/converse/:botId/sendMessage/:userId', async (req, res, next) => {
-      const { userId, botId } = req.params
-
-      const response = await this.converseService.sendMessage(
-        botId,
-        userId,
-        _.omit(req.body, ['includedContexts']),
-        //  req.credentials,
-        undefined,
-        req.body.includedContexts || ['global']
-      )
-      res.send(response)
-    })
+    const messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
+    this.app.use('/api/v1/chat', messagingRouter.router)
 
     this.app.use(function handleUnexpectedError(err, req, res, next) {
       const statusCode = err.statusCode || 400

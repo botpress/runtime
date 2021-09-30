@@ -30,8 +30,6 @@ declare namespace NodeJS {
     LOADED_MODULES: { [module: string]: string }
     pkg: any
     IS_LICENSED?: boolean
-    IS_PRO_AVAILABLE: boolean
-    IS_PRO_ENABLED: boolean
     CLUSTER_ENABLED: boolean
     ASSERT_LICENSED?: Function
     BOTPRESS_VERSION: string
@@ -46,16 +44,11 @@ declare namespace NodeJS {
     DISABLE_TRANSITION_SANDBOX: boolean
     DISABLE_CONTENT_SANDBOX: boolean
     WEB_WORKER: number
-    TRAINING_WORKERS: number[]
-    USE_JWT_COOKIES: boolean
-    // The internal password is used for inter-process communication
-    INTERNAL_PASSWORD: string
   }
 }
 
 declare var process: NodeJS.Process
 declare var global: NodeJS.Global
-declare type PRO_FEATURES = 'seats'
 
 /**
  * This is a copy of process.env to add typing and documentation to variables
@@ -63,9 +56,6 @@ declare type PRO_FEATURES = 'seats'
 declare interface BotpressEnvironmentVariables {
   /** Replace the path of the NodeJS Native Extensions for external OS-specific libraries such as fastText and CRFSuite */
   readonly NATIVE_EXTENSIONS_DIR?: string
-
-  /** Replace the path of nlu binaries file */
-  readonly NLU_BIN_DIR?: string
 
   /** Change the BPFS storage mechanism ("database" or "disk"). Defaults to "disk" */
   readonly BPFS_STORAGE?: 'database' | 'disk'
@@ -101,26 +91,11 @@ declare interface BotpressEnvironmentVariables {
    */
   readonly DATABASE_URL?: string
 
-  /** If pro features are enabled or not. When enabled, the license key must be provided */
-  readonly PRO_ENABLED?: boolean
-
   /** When running botpress in production, some optimizations are applied */
   readonly BP_PRODUCTION?: boolean
 
   /** Enable cluster mode */
   readonly CLUSTER_ENABLED?: boolean
-
-  /** When you change the botpress executable, it will migrate data automatically if this is set */
-  readonly AUTO_MIGRATE?: boolean
-
-  /** Server license key */
-  readonly BP_LICENSE_KEY?: string
-
-  /**
-   * Change the host of the licensing server
-   * @default https://license.botpress.io
-   */
-  readonly BP_LICENSE_SERVER_HOST?: string
 
   /**
    * Set this to true if you're exposing Botpress through a reverse proxy such as Nginx
@@ -220,31 +195,6 @@ declare interface BotpressEnvironmentVariables {
   /** When true, content elements rendering will be executed outside of the sandbox */
   readonly DISABLE_CONTENT_SANDBOX?: boolean
 
-  /** Runs all migrations from v12.0.0 up to the latest migration found in modules and core */
-  readonly TESTMIG_ALL?: boolean
-
-  /** Runs future migrations, ignore completed migrations & sets the config version to the version in package.json */
-  readonly TESTMIG_NEW?: boolean
-
-  /** Migration Testing: Simulate a specific version for the server, ex: 12.5.0 */
-  readonly TESTMIG_BP_VERSION?: string
-
-  /** Migration Testing: Simulate a specific version for the configuration file, ex: 12.4.0 */
-  readonly TESTMIG_CONFIG_VERSION?: string
-
-  /** Migration Testing: Set this to true to run completed migrations everytime the server starts */
-  readonly TESTMIG_IGNORE_COMPLETED?: boolean
-
-  /** Prevent running migrations (to allow manual fix of an issue which prevents server startup) */
-  readonly SKIP_MIGRATIONS?: boolean
-
-  /**
-   * Indicates how many child process to spawn as Machibe Learning workers.
-   * Defaults to 4 if supported by CPU
-   * @default 4
-   */
-  readonly BP_NUM_ML_THREADS?: number
-
   /**
    * Overrides the maximum file size allowed for the BPFS
    * @default 100mb
@@ -256,40 +206,6 @@ declare interface BotpressEnvironmentVariables {
    * @default 50
    */
   readonly BP_BPFS_UPLOAD_CONCURRENCY?: number
-
-  /**
-   * Disable the file upload feature on the Code Editor
-   * @default false
-   */
-  readonly BP_CODE_EDITOR_DISABLE_UPLOAD?: boolean
-
-  /**
-   * Disable the advanced editor feature on the Code Editor
-   * @default false
-   */
-  readonly BP_CODE_EDITOR_DISABLE_ADVANCED?: boolean
-
-  /**
-   * Overwrites the modules that are enabled by default.
-   * Has to be formatted as JSON,
-   * ex: ['nlu', 'nlu-testing']
-   */
-  readonly BP_ENABLED_MODULES?: string
-
-  /**
-   * The complete path to the out/ folder of the studio
-   */
-  readonly DEV_STUDIO_PATH?: string
-
-  /**
-   * The complete path to the dist/ folder of packages/nlu/dist
-   */
-  readonly DEV_NLU_PATH?: string
-
-  /**
-   * The complete path to the dist/ folder of the messaging repo
-   */
-  readonly DEV_MESSAGING_PATH?: string
 }
 
 interface IDebug {
