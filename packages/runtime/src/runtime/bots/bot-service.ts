@@ -2,6 +2,7 @@ import { BotConfig, Logger } from 'botpress/sdk'
 import { extractArchive } from 'common/archive'
 import { BotHealth, ServerHealth } from 'common/typings'
 import { isValidBotId } from 'common/validation'
+import glob from 'glob'
 import { inject, injectable, postConstruct, tagged } from 'inversify'
 import _ from 'lodash'
 import ms from 'ms'
@@ -14,12 +15,13 @@ import { GhostService } from 'runtime/bpfs'
 import { CMSService } from 'runtime/cms'
 import { ConfigProvider } from 'runtime/config'
 import { JobService, makeRedisKey } from 'runtime/distributed'
+import { MessagingService } from 'runtime/messaging'
 import { Hooks, HookService } from 'runtime/user-code'
 import tmp from 'tmp'
 import { ComponentService } from './component-service'
 
 const BOT_CONFIG_FILENAME = 'bot.config.json'
-
+const BOT_ID_PLACEHOLDER = '/bots/BOT_ID_PLACEHOLDER/'
 const STATUS_REFRESH_INTERVAL = ms('15s')
 const STATUS_EXPIRY = ms('20s')
 const DEFAULT_BOT_HEALTH: BotHealth = { status: 'disabled', errorCount: 0, warningCount: 0, criticalCount: 0 }
@@ -43,7 +45,8 @@ export class BotService {
     @inject(TYPES.CMSService) private cms: CMSService,
     @inject(TYPES.GhostService) private ghostService: GhostService,
     @inject(TYPES.HookService) private hookService: HookService,
-    @inject(TYPES.JobService) private jobService: JobService
+    @inject(TYPES.JobService) private jobService: JobService,
+    @inject(TYPES.MessagingService) private messagingService: MessagingService
   ) {
     this._botIds = undefined
     this.componentService = new ComponentService(this.logger, this.ghostService, this.cms)
@@ -116,7 +119,17 @@ export class BotService {
     return BotService._mountedBots.get(botId) || false
   }
 
-  async importBot(botId: string, archive: Buffer, workspaceId: string, allowOverwrite?: boolean): Promise<void> {
+  async deleteBot(botId: string) {
+    if (!(await this.botExists(botId))) {
+      throw new Error(`Bot "${botId}" doesn't exist`)
+    }
+
+    await this.unmountBot(botId)
+    await this.ghostService.forBot(botId).deleteFolder('/')
+    this._invalidateBotIds()
+  }
+
+  async importBot(botId: string, archive: Buffer, allowOverwrite?: boolean): Promise<void> {
     const startTime = Date.now()
     if (!isValidBotId(botId)) {
       throw new Error("Can't import bot; the bot ID contains invalid characters")
@@ -145,8 +158,6 @@ export class BotService {
       await this.hookService.executeHook(new Hooks.BeforeBotImport(api, botId, tmpFolder, hookResult))
 
       if (hookResult.allowImport) {
-        const pipeline = await this.workspaceService.getPipeline(workspaceId)
-
         await replace({
           files: `${tmpDir.name}/**/*.json`,
           from: new RegExp(BOT_ID_PLACEHOLDER, 'g'),
@@ -159,14 +170,7 @@ export class BotService {
 
         const newConfigs = <Partial<BotConfig>>{
           id: botId,
-          name: botId === originalConfig.name ? originalConfig.name : `${originalConfig.name} (${botId})`,
-          pipeline_status: {
-            current_stage: {
-              id: pipeline && pipeline[0].id,
-              promoted_by: 'system',
-              promoted_on: new Date()
-            }
-          }
+          name: botId === originalConfig.name ? originalConfig.name : `${originalConfig.name} (${botId})`
         }
         if (await this.botExists(botId)) {
           await this.unmountBot(botId)
@@ -174,9 +178,11 @@ export class BotService {
 
         await this.configProvider.mergeBotConfig(botId, newConfigs, true)
 
-        await this.workspaceService.addBotRef(botId, workspaceId)
+        // TODO-Runtime: Remove workspace service usage
+        // await this.workspaceService.addBotRef(botId, workspaceId)
 
-        await studioActions.checkBotMigrations(botId)
+        // TODO-Runtime: How do we handle bot migrations?
+        // await studioActions.checkBotMigrations(botId)
 
         if (!originalConfig.disabled) {
           if (!(await this.mountBot(botId))) {
@@ -196,6 +202,17 @@ export class BotService {
       tmpDir.removeCallback()
       debug.forBot(botId, `Bot import took ${Date.now() - startTime}ms`)
     }
+  }
+
+  private async _validateBotArchive(directory: string): Promise<string> {
+    const configFile = await Promise.fromCallback<string[]>(cb => glob('**/bot.config.json', { cwd: directory }, cb))
+    if (configFile.length > 1) {
+      throw new Error('Bots must be imported in separate archives')
+    } else if (configFile.length !== 1) {
+      throw new Error("The archive doesn't seem to contain a bot")
+    }
+
+    return path.join(directory, path.dirname(configFile[0]))
   }
 
   private async _localSyncLibs(botId: string, serverId: string) {
@@ -249,6 +266,7 @@ export class BotService {
         throw new Error('Supported languages must include the default language of the bot')
       }
 
+      await this.messagingService.loadMessagingForBot(botId)
       await this.cms.loadContentTypesFromFiles(botId)
       await this.componentService.extractBotComponents(botId)
 
@@ -288,6 +306,7 @@ export class BotService {
     }
 
     await this.cms.clearElementsFromCache(botId)
+    await this.messagingService.unloadMessagingForBot(botId)
 
     const api = await createForGlobalHooks()
     await this.hookService.executeHook(new Hooks.AfterBotUnmount(api, botId))

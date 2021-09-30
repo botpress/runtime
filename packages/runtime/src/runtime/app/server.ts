@@ -11,6 +11,7 @@ import _ from 'lodash'
 import ms from 'ms'
 import portFinder from 'portfinder'
 import { TYPES } from 'runtime/app/types'
+import { BotService } from 'runtime/bots'
 import { ConfigProvider } from 'runtime/config'
 import { ConverseService } from 'runtime/converse'
 import { EventEngine, EventRepository } from 'runtime/events'
@@ -18,6 +19,7 @@ import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { MessagingRouter, MessagingService } from 'runtime/messaging'
 import yn from 'yn'
 
+import { ManageRouter } from './manage-router'
 import { debugRequestMw } from './server-utils'
 
 @injectable()
@@ -25,7 +27,6 @@ export class HTTPServer {
   public httpServer!: Server
   public readonly app: express.Express
   private isBotpressReady = false
-  private messagingRouter!: MessagingRouter
 
   constructor(
     @inject(TYPES.ConfigProvider) private configProvider: ConfigProvider,
@@ -35,7 +36,8 @@ export class HTTPServer {
     @inject(TYPES.EventEngine) private eventEngine: EventEngine,
     @inject(TYPES.EventRepository) private eventRepo: EventRepository,
     @inject(TYPES.ConverseService) private converseService: ConverseService,
-    @inject(TYPES.MessagingService) private messaging: MessagingService
+    @inject(TYPES.MessagingService) private messaging: MessagingService,
+    @inject(TYPES.BotService) private botService: BotService
   ) {
     this.app = express()
 
@@ -103,28 +105,11 @@ export class HTTPServer {
       )
     }
 
-    this.messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
-    this.messagingRouter.setupRoutes(this.app)
+    const manageRouter = new ManageRouter(this.logger, this.botService, this)
+    this.app.use('/manage', manageRouter.router)
 
-    this.app.use('/api/v1/chat', this.messagingRouter.router)
-
-    // Import bot
-    // delete bot
-
-    // Will disappear
-    this.app.post('/converse/:botId/sendMessage/:userId', async (req, res, next) => {
-      const { userId, botId } = req.params
-
-      const response = await this.converseService.sendMessage(
-        botId,
-        userId,
-        _.omit(req.body, ['includedContexts']),
-        //  req.credentials,
-        undefined,
-        req.body.includedContexts || ['global']
-      )
-      res.send(response)
-    })
+    const messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
+    this.app.use('/api/v1/chat', messagingRouter.router)
 
     this.app.use(function handleUnexpectedError(err, req, res, next) {
       const statusCode = err.statusCode || 400
@@ -148,7 +133,7 @@ export class HTTPServer {
     process.HOST = config.host
     process.PORT = await portFinder.getPortPromise({ port: config.port })
     process.EXTERNAL_URL = process.env.EXTERNAL_URL || config.externalUrl || `http://${process.HOST}:${process.PORT}`
-    // process.LOCAL_URL = `http://${process.HOST}:${process.PORT}${process.ROOT_PATH}`
+    process.LOCAL_URL = `http://${process.HOST}:${process.PORT}`
 
     if (process.PORT !== config.port) {
       this.logger.warn(`Configured port ${config.port} is already in use. Using next port available: ${process.PORT}`)

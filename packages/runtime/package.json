@@ -1,6 +1,6 @@
 {
   "name": "@botpress/runtime",
-  "version": "12.22.2",
+  "version": "12.26.3",
   "description": "The world's most powerful conversational engine",
   "engines": {
     "node": "^12"
@@ -13,7 +13,8 @@
   "scripts": {
     "start": "cd dist && cross-env NODE_PATH=./ cross-env BP_MODULES_PATH=./data/modules/:../../../modules:../../../internal-modules STAN_DEV_MODE=true node index.js",
     "cmd": "yarn run gulp",
-    "build": "yarn tsc",
+    "build": "yarn tsc && node ../../build/make_schemas && node ../../build/make_metadata",
+    "package": "node ../../build/package.js",
     "watch": "yarn tsc --watch"
   },
   "dependencies": {

@@ -5,7 +5,7 @@ import { GhostContainerModule } from 'runtime/bpfs'
 import { CMSService, RenderService } from 'runtime/cms'
 import { ConverseService } from 'runtime/converse'
 import { DialogContainerModule, SkillService } from 'runtime/dialog'
-import { CEJobService, JobService } from 'runtime/distributed'
+import { LocalJobService, JobService, RedisJobService } from 'runtime/distributed'
 import { EventEngine, Queue, MemoryQueue } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
 import { LogsJanitor } from 'runtime/logger'
@@ -47,9 +47,14 @@ const ServicesContainerModule = new ContainerModule((bind: interfaces.Bind) => {
   })
 
   bind<JobService>(TYPES.JobService)
-    .to(CEJobService)
+    .to(LocalJobService)
     .inSingletonScope()
-    .when(() => !process.IS_PRODUCTION || !process.CLUSTER_ENABLED || !process.IS_PRO_ENABLED)
+    .when(() => !process.CLUSTER_ENABLED)
+
+  bind<JobService>(TYPES.JobService)
+    .to(RedisJobService)
+    .inSingletonScope()
+    .when(() => process.CLUSTER_ENABLED)
 
   bind<HookService>(TYPES.HookService)
     .to(HookService)

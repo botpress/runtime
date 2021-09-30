@@ -1,39 +1,27 @@
 import * as sdk from 'botpress/runtime-sdk'
 import { WrapErrorsWith } from 'errors'
-import { RuntimeSetup } from 'index'
 import { inject, injectable, tagged } from 'inversify'
 import _ from 'lodash'
 import moment from 'moment'
-import ms from 'ms'
-import path from 'path'
 import { BotService, BotMonitoringService } from 'runtime/bots'
 import { GhostService } from 'runtime/bpfs'
 import { CMSService } from 'runtime/cms'
 import { RuntimeConfig, ConfigProvider } from 'runtime/config'
-
 import { buildUserKey, converseApiEvents, ConverseService } from 'runtime/converse'
 import Database from 'runtime/database'
-import { StateManager, DecisionEngine, DialogEngine, DialogJanitor, WellKnownFlags, FlowService } from 'runtime/dialog'
+import { StateManager, DecisionEngine, DialogJanitor, WellKnownFlags, FlowService } from 'runtime/dialog'
 import { SessionIdFactory } from 'runtime/dialog/sessions'
-import { addStepToEvent, EventCollector, StepScopes, StepStatus, EventEngine, Event, IOEvent } from 'runtime/events'
+import { addStepToEvent, EventCollector, StepScopes, StepStatus, EventEngine, Event } from 'runtime/events'
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
-import {
-  LoggerDbPersister,
-  LoggerFilePersister,
-  LoggerProvider,
-  LogsJanitor,
-  PersistedConsoleLogger
-} from 'runtime/logger'
+import { LoggerDbPersister, LoggerFilePersister, LoggerProvider, LogsJanitor } from 'runtime/logger'
 import { MessagingService } from 'runtime/messaging'
 import { QnaService } from 'runtime/qna'
-import { ActionService, Hooks, HookService } from 'runtime/user-code'
-import { getDebugScopes, setDebugScopes } from '../../debug'
-import { createForAction, createForGlobalHooks } from './api'
+import { Hooks, HookService } from 'runtime/user-code'
+
+import { setDebugScopes } from '../../debug'
+import { createForGlobalHooks } from './api'
 import { HTTPServer } from './server'
-
 import { TYPES } from './types'
-
-const DEBOUNCE_DELAY = ms('2s')
 
 @injectable()
 export class Botpress {
@@ -63,91 +51,35 @@ export class Botpress {
     @inject(TYPES.EventCollector) private eventCollector: EventCollector,
     @inject(TYPES.BotMonitoringService) private botMonitor: BotMonitoringService,
     @inject(TYPES.QnaService) private qnaService: QnaService,
-    @inject(TYPES.FlowService) private flowService: FlowService,
-    @inject(TYPES.ActionService) private actionService: ActionService,
     @inject(TYPES.MessagingService) private messagingService: MessagingService
   ) {}
 
-  private _refreshBot = async (botId: string) => {
-    await this.ghostService.forBot(botId).clearCache()
-
-    await this.cmsService.refreshElements(botId)
-    await this.flowService.forBot(botId).reloadFlows()
-
-    await this.hookService.clearRequireCache()
-    await this.actionService.forBot(botId).clearRequireCache()
-  }
-
-  private _refreshDebounced = _.debounce(this._refreshBot, DEBOUNCE_DELAY, { leading: true, trailing: false })
-
-  async start(options: RuntimeSetup) {
+  async start() {
     const beforeDt = moment()
-    await this.initialize(options)
+    await this.initialize()
     const bootTime = moment().diff(beforeDt, 'milliseconds')
     this.logger.info(`Ready in ${bootTime}ms`)
-
-    return {
-      sendEvent: this.eventEngine.sendEvent.bind(this.eventEngine),
-      sendConverseMessage: this.converseService.sendMessage.bind(this.converseService),
-      mountBot: this.botService.mountBot.bind(this.botService),
-      unmountBot: this.botService.unmountBot.bind(this.botService),
-      refreshBot: this._refreshDebounced
-    }
   }
 
-  private async disableModules() {
-    // If there is no CORE_PORT, then we must disable all modules (except builtins one)
-    // if (!process.env.CORE_PORT) {
-    //   const globalConfig = await app.config.getBotpressConfig()
-    //   const modules = _.uniqBy(globalConfig.modules, x => x.location).map(x => x.location.replace('MODULES_ROOT/', ''))
-    //   for (const mod of modules) {
-    //     const mrl = new ModuleResourceLoader(logger, mod, app.ghost)
-    //     await mrl.disableResources()
-    //   }
-    // }
-  }
+  private async initialize() {
+    this.config = await this.configProvider.getRuntimeConfig()
+    const bots = await this.botService.getBotsIds()
 
-  private async initialize(options: RuntimeSetup) {
-    if (!options) {
-      this.config = await this.configProvider.getRuntimeConfig()
-      const bots = await this.botService.getBotsIds()
-      options = {
-        bots
-      } as any
-
-      await this.startServer()
-    } else {
-      this.configProvider.setRuntimeConfig(options.config)
-      this.config = options.config
-
-      if (options.logStreamEmitter) {
-        PersistedConsoleLogger.LogStreamEmitter = options.logStreamEmitter
-      }
-    }
+    await this.startServer()
 
     setDebugScopes(process.core_env.DEBUG || (process.IS_PRODUCTION ? '' : 'bp:dialog'))
 
     AppLifecycle.setDone(AppLifecycleEvents.CONFIGURATION_LOADED)
 
-    this.api = await createForGlobalHooks(options.api?.hooks)
-    await createForAction(options.api?.hooks)
-
-    if (options.middlewares) {
-      for (const mw of options.middlewares.incoming) {
-        this.eventEngine.register(mw)
-      }
-
-      for (const mw of options.middlewares.outgoing) {
-        this.eventEngine.register(mw)
-      }
-    }
-
     await this.restoreDebugScope()
-    await this.initializeServices(options)
+    await this.initializeServices()
 
-    await this.discoverBots(options.bots)
+    await this.discoverBots(bots)
 
     AppLifecycle.setDone(AppLifecycleEvents.BOTPRESS_READY)
+
+    this.api = await createForGlobalHooks()
+    await this.hookService.executeHook(new Hooks.AfterServerStart(this.api))
   }
 
   async restoreDebugScope() {
@@ -172,7 +104,7 @@ export class Botpress {
     await Promise.map(botsToMount, botId => this.botService.mountBot(botId), { concurrency: maxConcurrentMount })
   }
 
-  private async initializeServices(options: RuntimeSetup) {
+  private async initializeServices() {
     await this.loggerDbPersister.initialize(this.database, await this.loggerProvider('LogDbPersister'))
     this.loggerDbPersister.start()
 
@@ -181,7 +113,7 @@ export class Botpress {
     await this.cmsService.initialize()
     await this.eventCollector.initialize(this.database)
     await this.qnaService.initialize()
-    await this.messagingService.initialize(options.messagingEndpoint)
+    await this.messagingService.initialize()
 
     this.eventEngine.onBeforeIncomingMiddleware = async (event: sdk.IO.IncomingEvent) => {
       await this.stateManager.restore(event)

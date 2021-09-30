@@ -10,28 +10,13 @@
   "author": "Botpress, Inc.",
   "license": "AGPL-3.0",
   "private": true,
-  "nlu": {
-    "version": "0.1.6"
-  },
-  "studio": {
-    "version": "0.0.37",
-    "devBranch": "ya-studio-builtin"
-  },
-  "messaging": {
-    "version": "0.1.13"
-  },
   "scripts": {
     "postinstall": "yarn cmd postinstall",
-    "start": "yarn workspace botpress start",
-    "cmd": "yarn run gulp",
-    "build": "yarn cmd build",
-    "watch": "yarn cmd watch",
-    "package": "yarn cmd package",
-    "test": "cross-env NATIVE_EXTENSIONS_DIR=build/native-extensions cross-env jest -i --detectOpenHandles -c jest.config.js && yarn workspace ui-shared-lite test",
-    "reference": "yarn cmd build:reference",
-    "itest": "yarn workspace botpress itest",
-    "commitmsg": "commitlint -e $GIT_PARAMS",
-    "bpd": "node build/downloader/out/index.js"
+    "start": "yarn workspace runtime start",
+    "build": "yarn workspace runtime build",
+    "watch": "yarn workspace runtime watch",
+    "package": "yarn workspace runtime package",
+    "test": "cross-env NATIVE_EXTENSIONS_DIR=build/native-extensions cross-env jest -i --detectOpenHandles -c jest.config.js && yarn workspace ui-shared-lite test"
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.6",

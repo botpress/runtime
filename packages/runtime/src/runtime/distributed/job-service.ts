@@ -25,7 +25,7 @@ export interface JobService {
 }
 
 @injectable()
-export class CEJobService implements JobService {
+export class LocalJobService implements JobService {
   private locks: { [key: string]: Date } = {}
 
   async broadcast<T>(fn: Function): Promise<Function> {

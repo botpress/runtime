@@ -1,7 +1,6 @@
 import { AxiosError } from 'axios'
 import { IO, Logger, LoggerEntry, LoggerLevel, LoggerListener, LogLevel } from 'botpress/runtime-sdk'
 import chalk from 'chalk'
-import { Metric } from 'common/monitoring'
 import { InvalidParameterError } from 'errors'
 import { EventEmitter2 } from 'eventemitter2'
 import { inject, injectable } from 'inversify'
@@ -10,7 +9,6 @@ import moment from 'moment'
 import os from 'os'
 import { BotService } from 'runtime/bots'
 import { addLogToEvent } from 'runtime/events'
-import { incrementMetric } from 'runtime/health'
 import { IDisposable } from 'runtime/misc/disposable'
 import { TYPES } from 'runtime/types'
 import stripAnsi from 'strip-ansi'
@@ -258,7 +256,6 @@ export class PersistedConsoleLogger implements Logger {
       BotService.incrementBotStats(this.botId, 'warning')
     }
 
-    incrementMetric(Metric.Warnings)
     this.print(LoggerLevel.Warn, message, metadata)
   }
 
@@ -271,7 +268,6 @@ export class PersistedConsoleLogger implements Logger {
       BotService.incrementBotStats(this.botId, 'error')
     }
 
-    incrementMetric(Metric.Errors)
     this.print(LoggerLevel.Error, message, metadata)
   }
 
@@ -284,7 +280,6 @@ export class PersistedConsoleLogger implements Logger {
       BotService.incrementBotStats(this.botId, 'critical')
     }
 
-    incrementMetric(Metric.Criticals)
     this.print(LoggerLevel.Critical, message, metadata)
   }
 }

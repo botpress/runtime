@@ -1,17 +1,21 @@
-import { DirectoryListingOptions, ListenHandle, Logger } from 'botpress/runtime-sdk'
+import { DirectoryListingOptions, ListenHandle, Logger, UpsertOptions, BotConfig } from 'botpress/sdk'
+import { createArchive } from 'common/archive'
 import { ObjectCache } from 'common/object-cache'
 import { EventEmitter2 } from 'eventemitter2'
+import fse from 'fs-extra'
 import { inject, injectable, tagged } from 'inversify'
 import jsonlintMod from 'jsonlint-mod'
 import _ from 'lodash'
 import minimatch from 'minimatch'
+import mkdirp from 'mkdirp'
 import path from 'path'
+import replace from 'replace-in-file'
 import { TYPES } from 'runtime/app/types'
-import { forceForwardSlashes, sanitize } from 'runtime/misc/utils'
-
+import { asBytes, filterByGlobs, forceForwardSlashes, sanitize } from 'runtime/misc/utils'
+import tmp, { file } from 'tmp'
 import { VError } from 'verror'
 
-import { PendingRevisions, StorageDriver } from '.'
+import { FileRevision, PendingRevisions, ReplaceContent, ServerWidePendingRevisions, StorageDriver } from '.'
 import { DBStorageDriver } from './drivers/db-driver'
 import { DiskStorageDriver } from './drivers/disk-driver'
 
@@ -40,6 +44,7 @@ interface ScopedGhostOptions {
   noSanitize?: boolean
 }
 
+const MAX_GHOST_FILE_SIZE = process.core_env.BP_BPFS_MAX_FILE_SIZE || '100mb'
 const GLOBAL_GHOST_KEY = '__global__'
 const BOTS_GHOST_KEY = '__bots__'
 
@@ -177,6 +182,23 @@ export class ScopedGhostService {
     this.primaryDriver = useDbDriver ? dbDriver : diskDriver
   }
 
+  /**
+   * TODO: Refactor this on v12.1.4
+   * This is a temporary workaround to lock bots marked as "locked" until modules are correctly updated.
+   */
+  private async _assertBotUnlocked(directory: string, file?: string) {
+    if (!this.options.botId || directory.startsWith('./models')) {
+      return
+    }
+
+    if (await this.fileExists('/', 'bot.config.json')) {
+      const config = await this.readFileAsObject<BotConfig>('/', 'bot.config.json')
+      if (config.locked) {
+        throw new Error('Bot locked')
+      }
+    }
+  }
+
   private _normalizeFolderName(rootFolder: string) {
     const folder = forceForwardSlashes(path.join(this.baseDir, rootFolder))
     return this.options.noSanitize ? folder : sanitize(folder, 'folder')
@@ -203,6 +225,158 @@ export class ScopedGhostService {
 
   public async clearCache() {
     await this.cache.invalidateStartingWith(this._normalizeFolderName(''))
+  }
+
+  async ensureDirs(rootFolder: string, directories: string[]): Promise<void> {
+    if (!this.useDbDriver) {
+      await Promise.mapSeries(directories, d => this.diskDriver.createDir(this._normalizeFileName(rootFolder, d)))
+    }
+  }
+
+  // temporary until we implement a large file storage system
+  // size is increased because NLU models are getting bigger
+  private getFileSizeLimit(fileName: string): number {
+    const humanSize = fileName.endsWith('.model') ? '500mb' : MAX_GHOST_FILE_SIZE
+    return asBytes(humanSize)
+  }
+
+  async upsertFile(
+    rootFolder: string,
+    file: string,
+    content: string | Buffer,
+    options: UpsertOptions = {
+      recordRevision: true,
+      syncDbToDisk: false,
+      ignoreLock: false
+    }
+  ): Promise<void> {
+    if (!options.ignoreLock) {
+      await this._assertBotUnlocked(rootFolder, file)
+    }
+
+    if (this.isDirectoryGlob) {
+      throw new Error("Ghost can't read or write under this scope")
+    }
+
+    const fileName = this._normalizeFileName(rootFolder, file)
+    if (content.length > this.getFileSizeLimit(fileName)) {
+      throw new Error(`The size of the file ${fileName} is over the 100mb limit`)
+    }
+
+    await this.primaryDriver.upsertFile(fileName, content, !!options.recordRevision)
+    this.events.emit('changed', fileName)
+    await this._invalidateFile(fileName)
+
+    if (options.syncDbToDisk) {
+      await this.cache.sync(JSON.stringify({ rootFolder, botId: this.options.botId }))
+    }
+  }
+
+  async upsertFiles(rootFolder: string, content: FileContent[], options?: UpsertOptions): Promise<void> {
+    if (options && !options.ignoreLock) {
+      await this._assertBotUnlocked(rootFolder)
+    }
+
+    await Promise.all(content.map(c => this.upsertFile(rootFolder, c.name, c.content)))
+  }
+
+  /**
+   * Sync the local filesystem to the database.
+   * All files are tracked by default, unless `.ghostignore` is used to exclude them.
+   */
+  async sync() {
+    if (!this.useDbDriver) {
+      // We don't have to sync anything as we're just using the files from disk
+      return
+    }
+
+    const localFiles = await this.diskDriver.directoryListing(this.baseDir, {
+      includeDotFiles: true,
+      excludes: ['**/node_modules/**']
+    })
+
+    const diskRevs = await this.diskDriver.listRevisions(this.baseDir)
+    const dbRevs = await this.dbDriver.listRevisions(this.baseDir)
+    const syncedRevs = _.intersectionBy(diskRevs, dbRevs, x => `${x.path} | ${x.revision}`)
+
+    await Promise.each(syncedRevs, rev => this.dbDriver.deleteRevision(rev.path, rev.revision))
+    await this._updateProduction(localFiles)
+  }
+
+  private async _updateProduction(localFiles: string[]) {
+    // Delete the prod files that has been deleted from disk
+    const prodFiles = await this.dbDriver.directoryListing(this._normalizeFolderName('./'))
+    const filesToDelete = _.difference(prodFiles, localFiles)
+    await Promise.map(filesToDelete, filePath =>
+      this.dbDriver.deleteFile(this._normalizeFileName('./', filePath), false)
+    )
+
+    // Overwrite all of the prod files with the local files
+    await Promise.each(localFiles, async file => {
+      const filePath = this._normalizeFileName('./', file)
+      const content = await this.diskDriver.readFile(filePath)
+      await this.dbDriver.upsertFile(filePath, content, false)
+    })
+  }
+
+  public async exportToDirectory(directory: string, excludes?: string | string[]): Promise<string[]> {
+    const allFiles = await this.directoryListing('./', '*.*', excludes, true)
+
+    for (const file of allFiles.filter(x => x !== 'revisions.json')) {
+      const content = await this.primaryDriver.readFile(this._normalizeFileName('./', file))
+      const outPath = path.join(directory, file)
+      mkdirp.sync(path.dirname(outPath))
+      await fse.writeFile(outPath, content)
+    }
+
+    const dbRevs = await this.dbDriver.listRevisions(this.baseDir)
+
+    await fse.writeFile(path.join(directory, 'revisions.json'), JSON.stringify(dbRevs, undefined, 2))
+    if (!allFiles.includes('revisions.json')) {
+      allFiles.push('revisions.json')
+    }
+
+    return allFiles
+  }
+
+  public async importFromDirectory(directory: string) {
+    const filenames = await this.diskDriver.absoluteDirectoryListing(directory)
+
+    const files = filenames.map(file => {
+      return {
+        name: file,
+        content: fse.readFileSync(path.join(directory, file))
+      } as FileContent
+    })
+
+    await this.upsertFiles('/', files, { ignoreLock: true })
+  }
+
+  public async exportToArchiveBuffer(excludes?: string | string[], replaceContent?: ReplaceContent): Promise<Buffer> {
+    const tmpDir = tmp.dirSync({ unsafeCleanup: true })
+
+    try {
+      const outFiles = await this.exportToDirectory(tmpDir.name, excludes)
+      if (replaceContent) {
+        await replace({ files: `${tmpDir.name}/**/*.json`, from: replaceContent.from, to: replaceContent.to })
+      }
+
+      const filename = path.join(tmpDir.name, 'archive.tgz')
+
+      const archive = await createArchive(filename, tmpDir.name, outFiles)
+      return await fse.readFile(archive)
+    } finally {
+      tmpDir.removeCallback()
+    }
+  }
+
+  public async isFullySynced(): Promise<boolean> {
+    if (!this.useDbDriver) {
+      return true
+    }
+
+    const revisions = await this.dbDriver.listRevisions(this.baseDir)
+    return revisions.length === 0
   }
 
   async readFileAsBuffer(rootFolder: string, file: string): Promise<Buffer> {
@@ -264,6 +438,26 @@ export class ScopedGhostService {
     }
   }
 
+  async deleteFile(rootFolder: string, file: string): Promise<void> {
+    await this._assertBotUnlocked(rootFolder, file)
+    if (this.isDirectoryGlob) {
+      throw new Error("Ghost can't read or write under this scope")
+    }
+
+    const fileName = this._normalizeFileName(rootFolder, file)
+    await this.primaryDriver.deleteFile(fileName, true)
+    this.events.emit('changed', fileName)
+    await this._invalidateFile(fileName)
+  }
+
+  async renameFile(rootFolder: string, fromName: string, toName: string): Promise<void> {
+    await this._assertBotUnlocked(rootFolder, fromName)
+    const fromPath = this._normalizeFileName(rootFolder, fromName)
+    const toPath = this._normalizeFileName(rootFolder, toName)
+
+    await this.primaryDriver.moveFile(fromPath, toPath)
+  }
+
   async syncDatabaseFilesToDisk(rootFolder: string): Promise<void> {
     if (!this.useDbDriver) {
       return
@@ -275,6 +469,16 @@ export class ScopedGhostService {
     await Promise.mapSeries(remoteFiles, async file =>
       this.diskDriver.upsertFile(filePath(file), await this.dbDriver.readFile(filePath(file)))
     )
+  }
+
+  async deleteFolder(folder: string): Promise<void> {
+    await this._assertBotUnlocked(folder)
+    if (this.isDirectoryGlob) {
+      throw new Error("Ghost can't read or write under this scope")
+    }
+
+    const folderName = this._normalizeFolderName(folder)
+    await this.primaryDriver.deleteDir(folderName)
   }
 
   async directoryListing(
@@ -322,6 +526,14 @@ export class ScopedGhostService {
     }
 
     return result
+  }
+
+  async listDbRevisions(): Promise<FileRevision[]> {
+    return this.dbDriver.listRevisions(this.baseDir)
+  }
+
+  async listDiskRevisions(): Promise<FileRevision[]> {
+    return this.diskDriver.listRevisions(this.baseDir)
   }
 
   onFileChanged(callback: (filePath: string) => void): ListenHandle {
