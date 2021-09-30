@@ -68,6 +68,6 @@ export async function start() {
     }
   })
 
-  // logger.info(`Botpress is listening at: ${process.LOCAL_URL}`)
+  logger.info(`Botpress is listening at: ${process.LOCAL_URL}`)
   logger.info(`Botpress is exposed at: ${process.EXTERNAL_URL}`)
 }

@@ -133,7 +133,7 @@ export class HTTPServer {
     process.HOST = config.host
     process.PORT = await portFinder.getPortPromise({ port: config.port })
     process.EXTERNAL_URL = process.env.EXTERNAL_URL || config.externalUrl || `http://${process.HOST}:${process.PORT}`
-    // process.LOCAL_URL = `http://${process.HOST}:${process.PORT}${process.ROOT_PATH}`
+    process.LOCAL_URL = `http://${process.HOST}:${process.PORT}`
 
     if (process.PORT !== config.port) {
       this.logger.warn(`Configured port ${config.port} is already in use. Using next port available: ${process.PORT}`)

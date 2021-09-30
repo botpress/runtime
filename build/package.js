@@ -2,12 +2,8 @@ require('bluebird-global')
 const exec = require('child_process').exec
 const path = require('path')
 const fse = require('fs-extra')
-const gulp = require('gulp')
-const glob = require('glob')
 const mkdirp = require('mkdirp')
-const fs = require('fs')
 const archiver = require('archiver')
-
 const promisify = require('util').promisify
 const execAsync = promisify(exec)
 
@@ -36,16 +32,18 @@ const systems = [
 ]
 
 const zipArchive = async ({ osName, binding, tempBin, binaryName }) => {
-  const basePath = 'packages/runtime'
+  const basePath = '.'
   mkdirp.sync(`${basePath}/archives`)
 
   const version = fse.readJsonSync(path.resolve('package.json')).version.replace(/\./g, '_')
   const endFileName = `runtime-v${version}-${osName}-x64.zip`
   const output = fse.createWriteStream(path.resolve(`${basePath}/archives/${endFileName}`))
 
+  console.log(basePath, path.resolve(`${basePath}/archives/${endFileName}`))
+
   const archive = archiver('zip')
   archive.pipe(output)
-  archive.directory(`build/native-extensions/${binding}`, `bindings/${binding}`)
+  archive.directory(`../../build/native-extensions/${binding}`, `bindings/${binding}`)
   archive.file(`${basePath}/binaries/${tempBin}`, { name: binaryName })
 
   await archive.finalize()
@@ -81,6 +79,4 @@ const packageAll = async () => {
   await Promise.map(systems, x => zipArchive(x))
 }
 
-module.exports = {
-  packageAll
-}
+packageAll()
