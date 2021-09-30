@@ -2,7 +2,6 @@ global['NativePromise'] = global.Promise
 
 import 'reflect-metadata'
 import { EventEmitter2 } from 'eventemitter2'
-import fs from 'fs'
 import path from 'path'
 import yargs from 'yargs'
 import yn from 'yn'
@@ -80,6 +79,9 @@ try {
   process.ASSERT_LICENSED = () => {}
   process.BPFS_STORAGE = process.core_env.BPFS_STORAGE || 'disk'
   process.CLUSTER_ENABLED = yn(process.env.CLUSTER_ENABLED)
+
+  const metadataContent = require('./metadata.json')
+  process.BOTPRESS_VERSION = metadataContent.version
 
   yargs
     .command(
