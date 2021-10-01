@@ -1,4 +1,4 @@
-import { ConverseConfig } from 'botpress/sdk'
+import { ConverseConfig } from 'botpress/runtime-sdk'
 
 export type BotpressCondition = '$isProduction' | '$isDevelopment'
 
@@ -111,25 +111,6 @@ export interface RuntimeConfig {
      * @default
      */
     externalUrl: string
-    session: {
-      /**
-       * @default false
-       */
-      enabled: boolean
-      /**
-       * Time from Date.now() for expiry
-       * Defaults to one hour
-       * @default 1h
-       */
-      maxAge: string
-    }
-    /**
-     * Configure the priority for establishing socket connections for webchat and studio users.
-     * If the first method is not supported, it will fallback on the second.
-     * If the first is supported but it fails with an error, it will not fallback.
-     * @default ["websocket","polling"]
-     */
-    socketTransports: string[]
     rateLimit: {
       /**
        * * Security option to rate limit potential attacker trying to brute force something
@@ -156,15 +137,6 @@ export interface RuntimeConfig {
   converse: ConverseConfig
   dialog: DialogConfig
   logs: LogsConfig
-
-  pro: {
-    monitoring: MonitoringConfig
-    /**
-     * The alert service is an extension of the monitoring service. The monitoring collects data, while the alert service
-     * analyzes them and opens an incident when configured threshold are met.
-     */
-    alerting: AlertingConfig
-  }
   /**
    * When this feature is enabled, fields saved as user attributes will be automatically erased when they expires. The timer is reset each time the value is modified
    * Setting a policy called "email": "30d" means that once an email is set, it will be removed in 30 days, unless it is changed in that timespan
@@ -197,59 +169,6 @@ export interface DataRetentionConfig {
  */
 export interface RetentionPolicy {
   [key: string]: string
-}
-
-export interface MonitoringConfig {
-  /**
-   * To enable server monitoring, you need to enable the Pro version and configure your Redis server.
-   * @default false
-   */
-  enabled: boolean
-  /**
-   * The interval between data collection of metrics and usage. The lower the value brings more details,
-   * but comes at the cost of more storage required & processing time when viewing data.
-   * @default 10s
-   */
-  collectionInterval: string
-  /**
-   * Data older than this will be cleared periodically.
-   * @default 10d
-   */
-  retentionPeriod: string
-  /**
-   * The delay between execution of the janitor which removes statistics outside of the previously defined period
-   * @default 15m
-   */
-  janitorInterval: string
-}
-
-export interface AlertingConfig {
-  /**
-   * To enable the alerting service, you need to enable the monitoring first.
-   * @default false
-   */
-  enabled: boolean
-  /**
-   * Interval between each executions of the rule checker
-   * @default 10s
-   */
-  watcherInterval: string
-  /**
-   * The duration for which resolved incidents will be kept
-   * @default 10d
-   */
-  retentionPeriod: string
-  /**
-   * Delay between the execution of the janitor which removes resolved incidents.
-   * @default 15m
-   */
-  janitorInterval: string
-  /**
-   * The list of rules which triggers an incident. When triggered, the OnIncidentChangedStatus hook
-   * is called with the incident.
-   * @default []
-   */
-  // rules: IncidentRule[]
 }
 
 export interface BotMonitoringConfig {

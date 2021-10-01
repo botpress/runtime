@@ -1,4 +1,12 @@
-import { ContentElement, ContentType, CustomContentType, IO, KnexExtended, Logger, SearchParams } from 'botpress/sdk'
+import {
+  ContentElement,
+  ContentType,
+  CustomContentType,
+  IO,
+  KnexExtended,
+  Logger,
+  SearchParams
+} from 'botpress/runtime-sdk'
 import { inject, injectable, tagged } from 'inversify'
 import Joi from 'joi'
 import _ from 'lodash'

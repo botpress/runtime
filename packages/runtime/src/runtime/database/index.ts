@@ -1,4 +1,4 @@
-import { KnexExtended, Logger } from 'botpress/sdk'
+import { KnexExtended, Logger } from 'botpress/runtime-sdk'
 import { mkdirpSync } from 'fs-extra'
 import { inject, injectable, tagged } from 'inversify'
 import Knex from 'knex'

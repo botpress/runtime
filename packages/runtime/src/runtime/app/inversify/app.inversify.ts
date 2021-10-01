@@ -1,4 +1,4 @@
-import { Logger } from 'botpress/sdk'
+import { Logger } from 'botpress/runtime-sdk'
 import { Container } from 'inversify'
 import { Botpress } from 'runtime/app/botpress'
 import { ConfigProvider } from 'runtime/config'

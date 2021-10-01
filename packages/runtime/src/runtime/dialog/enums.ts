@@ -1,4 +1,4 @@
-import { IO } from 'botpress/sdk'
+import { IO } from 'botpress/runtime-sdk'
 
 export enum NodeActionType {
   RenderElement = 'render',

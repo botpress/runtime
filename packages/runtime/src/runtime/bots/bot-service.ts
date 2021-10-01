@@ -1,4 +1,4 @@
-import { BotConfig, Logger } from 'botpress/sdk'
+import { BotConfig, Logger } from 'botpress/runtime-sdk'
 import { extractArchive } from 'common/archive'
 import { BotHealth, ServerHealth } from 'common/typings'
 import { isValidBotId } from 'common/validation'

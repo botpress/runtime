@@ -1,7 +1,7 @@
 // eslint-disable  @typescript-eslint/no-floating-promises
 
 import 'bluebird-global'
-import { IO } from 'botpress/sdk'
+import { IO } from 'botpress/runtime-sdk'
 import _ from 'lodash'
 import 'reflect-metadata'
 

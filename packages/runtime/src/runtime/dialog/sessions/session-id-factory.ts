@@ -1,4 +1,4 @@
-import { IO } from 'botpress/sdk'
+import { IO } from 'botpress/runtime-sdk'
 
 export class SessionIdFactory {
   static createIdFromEvent(eventDestination: IO.EventDestination) {

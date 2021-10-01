@@ -1,4 +1,4 @@
-import { IO, Logger, NDU } from 'botpress/sdk'
+import { IO, Logger, NDU } from 'botpress/runtime-sdk'
 import { inject, injectable, postConstruct, tagged } from 'inversify'
 import _ from 'lodash'
 import moment from 'moment'

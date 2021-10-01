@@ -1,10 +1,10 @@
-import { IO } from 'botpress/sdk'
+import { IO } from 'botpress/runtime-sdk'
 import { ContainerModule, interfaces } from 'inversify'
 import { BotMonitoringService, BotService } from 'runtime/bots'
 import { GhostContainerModule } from 'runtime/bpfs'
 import { CMSService, RenderService } from 'runtime/cms'
 import { ConverseService } from 'runtime/converse'
-import { DialogContainerModule, SkillService } from 'runtime/dialog'
+import { DialogContainerModule } from 'runtime/dialog'
 import { LocalJobService, JobService, RedisJobService } from 'runtime/distributed'
 import { EventEngine, Queue, MemoryQueue } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
@@ -70,10 +70,6 @@ const ServicesContainerModule = new ContainerModule((bind: interfaces.Bind) => {
 
   bind<KeyValueStore>(TYPES.KeyValueStore)
     .to(KeyValueStore)
-    .inSingletonScope()
-
-  bind<SkillService>(TYPES.SkillService)
-    .to(SkillService)
     .inSingletonScope()
 
   bind<BotService>(TYPES.BotService)

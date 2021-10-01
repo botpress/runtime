@@ -1,4 +1,4 @@
-import { Logger } from 'botpress/sdk'
+import { Logger } from 'botpress/runtime-sdk'
 import chokidar from 'chokidar'
 import { ObjectCache } from 'common/object-cache'
 import { inject, injectable, tagged } from 'inversify'

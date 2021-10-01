@@ -1,4 +1,4 @@
-import * as sdk from 'botpress/sdk'
+import * as sdk from 'botpress/runtime-sdk'
 
 export class IOEvent implements sdk.IO.Event {
   public readonly id: string

@@ -1,4 +1,4 @@
-import * as sdk from 'botpress/sdk'
+import * as sdk from 'botpress/runtime-sdk'
 import { inject, injectable } from 'inversify'
 import Knex from 'knex'
 import _ from 'lodash'

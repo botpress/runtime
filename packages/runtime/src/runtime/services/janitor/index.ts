@@ -1,4 +1,4 @@
-import { Logger } from 'botpress/sdk'
+import { Logger } from 'botpress/runtime-sdk'
 import { injectable } from 'inversify'
 import ms from 'ms'
 

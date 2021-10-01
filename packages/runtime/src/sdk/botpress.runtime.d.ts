@@ -24,30 +24,6 @@ declare module 'botpress/runtime-sdk' {
     ): Promise<T>
   }
 
-  export interface Incident {
-    id: string
-    ruleName: string
-    hostName: string
-    startTime: Date
-    endTime?: Date
-    triggerValue: number
-  }
-
-  export type StrategyUser = {
-    id?: number
-    password?: string
-    salt?: string
-    tokenVersion: number
-  } & UserInfo
-
-  export interface UserInfo {
-    email: string
-    strategy: string
-    createdOn?: string
-    updatedOn?: string
-    attributes: any
-  }
-
   export type KnexExtended = Knex & KnexExtension
 
   /**
@@ -122,150 +98,6 @@ declare module 'botpress/runtime-sdk' {
     warn(message: string, metadata?: any): void
     error(message: string, metadata?: any): void
     critical(message: string, metadata?: any): void
-  }
-
-  export type ElementChangedAction = 'create' | 'update' | 'delete'
-
-  /**
-   * The Module Entry Point is used by the module loader to bootstrap the module. It must be present in the index.js file
-   * of the module. The path to the module must also be specified in the global botpress config.
-   */
-  export interface ModuleEntryPoint {
-    /** Additional metadata about the module */
-    definition: ModuleDefinition
-    /** An array of the flow generators used by skills in the module */
-    skills?: Skill[]
-    /** An array of available bot templates when creating a new bot */
-    botTemplates?: BotTemplate[]
-    translations?: { [lang: string]: object }
-    /** List of new conditions that the module can register */
-    dialogConditions?: Condition[]
-    /** Called once the core is initialized. Usually for middlewares / database init */
-    onServerStarted?: (bp: typeof import('botpress/sdk')) => Promise<void>
-    /** This is called once all modules are initialized, usually for routing and logic */
-    onServerReady?: (bp: typeof import('botpress/sdk')) => Promise<void>
-    onBotMount?: (bp: typeof import('botpress/sdk'), botId: string) => Promise<void>
-    onBotUnmount?: (bp: typeof import('botpress/sdk'), botId: string) => Promise<void>
-    /**
-     * Called when the module is unloaded, before being reloaded
-     * onBotUnmount is called for each bots before this one is called
-     */
-    onModuleUnmount?: (bp: typeof import('botpress/sdk')) => Promise<void>
-    /**
-     * Called when a topic is being changed.
-     * If oldName is not set, then the topic `newName` is being created
-     * If newName is not set, then the topic `oldName` is being deleted
-     */
-    onTopicChanged?: (
-      bp: typeof import('botpress/sdk'),
-      botId: string,
-      oldName?: string,
-      newName?: string
-    ) => Promise<void>
-    onFlowChanged?: (bp: typeof import('botpress/sdk'), botId: string, flow: Flow) => Promise<void>
-    onFlowRenamed?: (
-      bp: typeof import('botpress/sdk'),
-      botId: string,
-      previousFlowName: string,
-      newFlowName: string
-    ) => Promise<void>
-    /**
-     * This method is called whenever a content element is created, updated or deleted.
-     * Modules can act on these events if they need to update references, for example.
-     */
-    onElementChanged?: (
-      bp: typeof import('botpress/sdk'),
-      botId: string,
-      action: ElementChangedAction,
-      element: ContentElement,
-      oldElement?: ContentElement
-    ) => Promise<void>
-  }
-
-  /**
-   * Identifies new Bot Template that can be used to speed up the creation of a new bot without
-   * having to start from scratch
-   */
-  export interface BotTemplate {
-    /** Used internally to identify this template  */
-    id: string
-    /** The name that will be displayed in the bot template menu */
-    name: string
-    /** Gives a short description of your module, which is displayed once the template is selected */
-    desc: string
-    /** These are used internally by Botpress when they are registered on startup */
-    readonly moduleId?: string
-    readonly moduleName?: string
-  }
-
-  export interface ModuleDefinition {
-    /** This name should be in lowercase and without special characters (only - and _) */
-    name: string
-    fullName?: string
-    plugins?: ModulePluginEntry[]
-    /** Additional options that can be applied to the module's view */
-    moduleView?: ModuleViewOptions
-    /** If set to true, no menu item will be displayed */
-    noInterface?: boolean
-    /**
-     * An icon to display next to the name, if none is specified, it will receive a default one
-     * There is a separate icon for the admin and the studio, if you set menuIcon to 'icon.svg',
-     * please provide an icon named 'studio_icon.svg' and 'admin_icon.svg'
-     */
-    menuIcon?: string
-    /**
-     * The name displayed on the menu
-     * @deprecated Set the property "fullName" in the translations file for the desired language
-     */
-    menuText?: string
-    /** Optionally specify a link to your page or github repo */
-    homepage?: string
-    /** Whether or not the module is likely to change */
-    experimental?: boolean
-    /** Workspace Apps are accessible on the admin panel */
-    workspaceApp?: {
-      /** Adds a link on the Bots page to access this app for a specific bot */
-      bots?: boolean
-      /** Adds an icon on the menu to access this app without a bot ID */
-      global?: boolean
-    }
-  }
-
-  /**
-   * Skills are loaded automatically when the bot is started. They must be in the module's definition to be loaded.
-   * Each skills must have a flow generator and a view with the same name (skillId)
-   */
-  export interface Skill {
-    /** An identifier for the skill. Use only a-z_- characters. */
-    id: string
-    /** The name that will be displayed in the toolbar for the skill */
-    name: string
-    /** An icon to identify the skill */
-    icon?: string | any
-    /** Name of the parent module. This field is filled automatically when they are loaded */
-    readonly moduleName?: string
-    /**
-     * When adding a new skill on the Flow Editor, the flow is constructed dynamically by this method
-     *
-     * @param skillData Provided by the skill view, those are fields edited by the user on the Flow Editor
-     * @param metadata Some metadata automatically provided, like the bot id
-     * @return The method should return
-     */
-    flowGenerator: (skillData: any, metadata: FlowGeneratorMetadata) => Promise<FlowGenerationResult>
-  }
-
-  export interface FlowGeneratorMetadata {
-    botId: string
-    isOneFlow?: boolean
-  }
-
-  export interface ModulePluginEntry {
-    entry: 'WebBotpressUIInjection'
-    position: 'overlay'
-  }
-
-  export interface ModuleViewOptions {
-    stretched: boolean
   }
 
   export namespace NLU {
@@ -465,6 +297,7 @@ declare module 'botpress/runtime-sdk' {
       incomingEventId?: string
       debugger?: boolean
       messageId?: string
+      flags?: any
     }
 
     /**
@@ -1087,6 +920,11 @@ declare module 'botpress/runtime-sdk' {
     computePreviewText?: (formData: object) => string
   }
 
+  export type CustomContentType = Omit<Partial<ContentType>, 'id'> & {
+    /** A custom component must extend a builtin type */
+    extends: string
+  }
+
   /**
    * The flow is used by the dialog engine to answer the user and send him to the correct destination
    */
@@ -1116,86 +954,10 @@ declare module 'botpress/runtime-sdk' {
     params?: { [key: string]: any }
   }
 
-  export interface Condition {
-    id: string
-    /** String displayed in the dropdown */
-    label: string
-    /** The description holds placeholders for param values so they can be displayed in the view */
-    description?: string
-    /** The definition of all parameters used by this condition */
-    params?: { [paramName: string]: ConditionParam }
-    /** In which order the conditions will be displayed in the dropdown menu. 0 is the first item */
-    displayOrder?: number
-    /** This callback url is called when the condition is deleted or pasted in the flow */
-    callback?: string
-    /** The editor will use the LiteEditor component to provide the requested parameters */
-    useLiteEditor?: boolean
-    evaluate: (event: IO.IncomingEvent, params: any) => number
-  }
-
-  export interface ConditionParam {
-    label: string
-    /** Each type provides a different kind of editor */
-    type: 'string' | 'number' | 'boolean' | 'list' | 'radio' | 'array' | 'content'
-    /** Different components can be used to display certain types (eg: boolean/list) */
-    subType?: 'switch' | 'radio'
-    required?: boolean
-    defaultValue?: any
-    /** Number of rows (for types which supports it, ex: string, array) */
-    rows?: number
-    /** When type is list, this variable must be configured */
-    list?: ConditionListOptions
-  }
-
-  export interface ConditionListOptions {
-    /** List of options displayed in the dropdown menu */
-    items?: Option[]
-    /** Alternatively, set an endpoint where the list will be queried (eg: intents) */
-    endpoint?: string
-    /** The path to the list of elements (eg: language.available) */
-    path?: string
-    /** Name of the field which will be used as the value. Default to value */
-    valueField?: string
-    /** Friendly name displayed in the dropdown menu. Default to label */
-    labelField?: string
-  }
-
   export interface Option {
     value: string
     label: string
   }
-
-  export interface Topic {
-    name: string
-    description: string
-  }
-
-  export interface Library {
-    elementPath: string
-    elementId: string
-  }
-
-  /**
-   * This interface is used to encapsulate the logic around the creation of a new skill. A skill
-   * is a subflow which can have multiple nodes and custom logic, while being hidden under a single node in the main flow.
-   * The node transitions specified here are applied on the node in the main flow. Once the user enters the node,
-   * the flow takes over
-   */
-  export interface FlowGenerationResult {
-    /**
-     * A partial flow originating from a skill flow generator. Missing pieces will be automatically added
-     * once the flow is sent to Botpress, the final product will be a Flow.
-     */
-    flow: SkillFlow
-    /** An array of possible transitions for the parent node */
-    transitions: NodeTransition[]
-  }
-
-  /**
-   * The partial flow is only used to make some nodes optional. Those left empty will be automatically
-   * generated by the skill service.
-   */
-  export type SkillFlow = Partial<Flow> & Pick<Required<Flow>, 'nodes'>
 
   export type FlowNodeType =
     | 'standard'
@@ -1218,17 +980,6 @@ declare module 'botpress/runtime-sdk' {
     /** Used internally by the flow editor */
     readonly lastModified?: Date
   } & NodeActions
-
-  export type TriggerNode = FlowNode & {
-    conditions: DecisionTriggerCondition[]
-    activeWorkflow?: boolean
-  }
-
-  export type ListenNode = FlowNode & {
-    triggers: { conditions: DecisionTriggerCondition[] }[]
-  }
-
-  export type SkillFlowNode = Partial<ListenNode> & Pick<Required<ListenNode>, 'name'> & Partial<TriggerNode>
 
   /**
    * Node Transitions are all the possible outcomes when a user's interaction on a node is completed. The possible destinations
@@ -1254,99 +1005,6 @@ declare module 'botpress/runtime-sdk' {
   }
 
   export type FormDataField = any
-
-  export interface FormData {
-    id?: string
-    contentType?: string
-    [key: string]: FormDataField
-  }
-
-  interface FormOption {
-    value: any
-    label: string
-    related?: FormField
-  }
-
-  interface FormContextMenu {
-    type: string
-    label: string
-  }
-
-  // TODO use namespace to group form related interfaces
-  export interface FormDynamicOptions {
-    /** An enpoint to call to get the options */
-    endpoint: string
-    /** Used with _.get() on the data returned by api to get to the list of items */
-    path?: string
-    /** Field from DB to map as the value of the options */
-    valueField: string
-    /** Field from DB to map as the label of the options */
-    labelField: string
-  }
-
-  export type FormFieldType =
-    | 'checkbox'
-    | 'group'
-    | 'number'
-    | 'overridable'
-    | 'select'
-    | 'multi-select'
-    | 'text'
-    | 'text_array'
-    | 'textarea'
-    | 'upload'
-    | 'url'
-    | 'hidden'
-    | 'tag-input'
-    | 'variable'
-
-  export interface FormField {
-    type: FormFieldType
-    key: string
-    label?: string
-    overrideKey?: string
-    placeholder?: string | string[]
-    emptyPlaceholder?: string
-    options?: FormOption[]
-    defaultValue?: FormDataField
-    required?: boolean
-    variableTypes?: string[]
-    customPlaceholder?: boolean
-    max?: number
-    min?: number
-    maxLength?: number
-    valueManipulation?: {
-      regex: string
-      modifier: string
-      replaceChar: string
-    }
-    translated?: boolean
-    dynamicOptions?: FormDynamicOptions
-    fields?: FormField[]
-    moreInfo?: FormMoreInfo
-    /** When specified, indicate if array elements match the provided pattern */
-    validation?: {
-      regex?: RegExp
-      list?: any[]
-      validator?: (items: any[], newItem: any) => boolean
-    }
-    group?: {
-      /** You have to specify the add button label */
-      addLabel?: string
-      addLabelTooltip?: string
-      /** You can specify a minimum so the delete button won't show if there isn't more than the minimum */
-      minimum?: number
-      /** You can specify that there's one item of the group by default even if no minimum */
-      defaultItem?: boolean
-      /** You can add a contextual menu to add extra options */
-      contextMenu?: FormContextMenu[]
-    }
-  }
-
-  export interface FormMoreInfo {
-    label: string
-    url?: string
-  }
 
   /**
    * A Node Action represent all the possible actions that will be executed when the user is on the node. When the user
@@ -1384,54 +1042,6 @@ declare module 'botpress/runtime-sdk' {
   }
 
   /**
-   * The AxiosBotConfig contains the axios configuration required to call the api of another module.
-   * @example: axios.get('/mod/module', axiosBotConfig)
-   */
-  export interface AxiosBotConfig {
-    /** The base url of the bot.
-     * @example http://localhost:3000/
-     */
-    baseURL: string
-    headers: {
-      'CSRF-Token'?: string
-      Authorization?: string
-      'X-BP-Workspace'?: string
-    }
-  }
-
-  export interface MigrationResult {
-    success: boolean
-    /** Indicates if the migration had to be executed  */
-    hasChanges?: boolean
-    message?: string
-  }
-
-  export interface ModuleMigration {
-    info: {
-      description: string
-      target?: 'core' | 'bot'
-      type: 'database' | 'config' | 'content'
-      canDryRun?: boolean
-    }
-    up: (opts: ModuleMigrationOpts) => Promise<MigrationResult>
-    down?: (opts: ModuleMigrationOpts) => Promise<MigrationResult>
-  }
-
-  export interface ModuleMigrationOpts {
-    bp: typeof import('botpress/sdk')
-    metadata: MigrationMetadata
-    configProvider: any
-    database: any
-    inversify: any
-  }
-
-  /** These are additional information that Botpress may pass down to migrations (for ex: running bot-specific migration) */
-  export interface MigrationMetadata {
-    botId?: string
-    isDryRun?: boolean
-  }
-
-  /**
    * Simple interface to use when paging is required
    */
   export interface Paging {
@@ -1439,62 +1049,6 @@ declare module 'botpress/runtime-sdk' {
     start: number
     /** How many elements should be returned */
     count: number
-  }
-
-  /**
-   * All available rollout strategies (how users interact with bots of that workspace)
-   * An invite code is permanent, meaning that it will be consumed once and will not be necessary for that user in the future
-   *
-   * anonymous: Anyone can talk to bots
-   * anonymous-invite: Anyone with an invite code can talk to bots
-   * authenticated: Authenticated users will be automatically added to workspace as "chat user" (will then be "authorized")
-   * authenticated-invite: Authenticated users with an invite code will be added to workspace as "chat user" (will then be "authorized")
-   * authorized: Only authenticated users with an existing access to the workspace can talk to bots
-   */
-  export type RolloutStrategy =
-    | 'anonymous'
-    | 'anonymous-invite'
-    | 'authenticated'
-    | 'authenticated-invite'
-    | 'authorized'
-
-  export interface WorkspaceRollout {
-    rolloutStrategy: RolloutStrategy
-    inviteCode?: string
-    allowedUsages?: number
-  }
-  export interface WorkspaceUser {
-    email: string
-    strategy: string
-    role: string
-    workspace: string
-    workspaceName?: string
-  }
-
-  export type WorkspaceUserWithAttributes = {
-    attributes: any
-  } & WorkspaceUser
-
-  export interface GetWorkspaceUsersOptions {
-    attributes: string[] | '*'
-    includeSuperAdmins: boolean
-  }
-
-  export interface WorkspaceUser {
-    email: string
-    strategy: string
-    role: string
-    workspace: string
-    workspaceName?: string
-  }
-
-  export interface AddWorkspaceUserOptions {
-    /** Select an existing custom role for that user. If role, asAdmin and asChatUser are undefined, then it will pick the default role */
-    role?: string
-    /** When enabled, user is added to the workspace as an admin (role is ignored) */
-    asAdmin?: boolean
-    /** When enabled, user is added as a chat user (role is ignored)  */
-    asChatUser?: boolean
   }
 
   export interface RenderPipeline {
@@ -1613,39 +1167,6 @@ declare module 'botpress/runtime-sdk' {
   //////// API
   ////////////////
 
-  // prettier-ignore
-  export type RouterCondition = boolean | ((req: any) => boolean)
-
-  /**
-   * Those are possible options you may enable when creating new routers
-   */
-  export interface RouterOptions {
-    /**
-     * Check if user is authenticated before granting access
-     * @default true
-     */
-    checkAuthentication: RouterCondition
-
-    /**
-     * When checkAuthentication is enabled, set this to true to enforce permissions based on the method.
-     * GET/OPTIONS requests requires READ permissions, while all other requires WRITE permissions
-     * @default true
-     */
-    checkMethodPermissions?: RouterCondition
-
-    /**
-     * Parse the body as JSON when possible
-     * @default true
-     */
-    enableJsonBodyParser?: RouterCondition
-
-    /**
-     * Only parses body which are urlencoded
-     * @default true
-     */
-    enableUrlEncoderBodyParser?: RouterCondition
-  }
-
   /**
    * Search parameters when querying content elements
    */
@@ -1685,23 +1206,11 @@ declare module 'botpress/runtime-sdk' {
     desc?: boolean
   }
 
-  export interface AxiosOptions {
-    /** When true, it will return the local url instead of the external url  */
-    localUrl?: boolean
-    /** Temporary property so modules can query studio routes */
-    studioUrl?: boolean
-  }
-
   export interface RedisLock {
     /** Free the lock so other nodes can request it */
     unlock(): Promise<void>
     /** Extend the duration of the lock for the node owning it */
     extend(duration: number): Promise<void>
-  }
-
-  export interface FileContent {
-    name: string
-    content: string | Buffer
   }
 
   /**
