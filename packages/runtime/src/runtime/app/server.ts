@@ -105,6 +105,14 @@ export class HTTPServer {
       )
     }
 
+    this.app.get('/status', async (req, res, next) => {
+      res.send({ botpress: 'up' })
+    })
+
+    this.app.get('/version', async (req, res) => {
+      res.send(process.BOTPRESS_VERSION)
+    })
+
     const manageRouter = new ManageRouter(this.logger, this.botService, this)
     this.app.use('/manage', manageRouter.router)
 
