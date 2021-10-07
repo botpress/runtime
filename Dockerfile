@@ -12,8 +12,7 @@ RUN yarn build
 RUN yarn package
 
 RUN mkdir outputs && \
-  # TODO: update the package script to output a zip without the version inside the filename
-  unzip /app/packages/runtime/archives/runtime-v12_26_3-linux-x64 -d outputs 
+  unzip /app/packages/runtime/archives/runtime-v*-linux-x64.zip -d outputs 
 
 FROM ubuntu:20.04
 
