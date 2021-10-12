@@ -1,4 +1,4 @@
-import { BotConfig, Logger } from 'botpress/sdk'
+import { BotConfig, Logger } from 'botpress/runtime-sdk'
 import { ObjectCache } from 'common/object-cache'
 import { FatalError } from 'errors'
 import fs from 'fs'

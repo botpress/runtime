@@ -920,6 +920,9 @@ declare module 'botpress/runtime-sdk' {
      * if not set, seed is computed from botId
      */
     nluSeed?: number
+    nluModels?: {
+      [lang: string]: string
+    }
     qna: {
       disabled: boolean
     }
