@@ -18,6 +18,10 @@ export class MessagingRouter extends CustomRouter {
     this.router.post(
       '/receive',
       this.asyncMiddleware(async (req, res, next) => {
+        if (req.body?.type !== 'message.new') {
+          return res.sendStatus(200)
+        }
+
         const msg = await joi.validate<ReceiveRequest>(req.body, ReceiveSchema)
 
         if (!this.messaging.isExternal) {
@@ -28,10 +32,6 @@ export class MessagingRouter extends CustomRouter {
             req.headers['x-webhook-token'] !== this.messaging.getWebhookToken(msg.data.clientId))
         ) {
           return next?.(new Error('Invalid webhook token'))
-        }
-
-        if (req.body?.type !== 'message.new') {
-          return res.sendStatus(200)
         }
 
         try {
