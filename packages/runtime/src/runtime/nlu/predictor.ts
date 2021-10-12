@@ -26,8 +26,6 @@ export class Predictor {
       .map(([lang, modelId]) => ({ lang, modelId }))
       .value()
 
-    console.log(allModels, models)
-
     let detectedLanguage: string | undefined
     try {
       detectedLanguage = await this._nluClient.detectLanguage(
