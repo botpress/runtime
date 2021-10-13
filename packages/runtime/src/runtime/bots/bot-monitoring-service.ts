@@ -1,5 +1,5 @@
 import 'bluebird-global'
-import { Logger, LoggerEntry } from 'botpress/sdk'
+import { Logger, LoggerEntry } from 'botpress/runtime-sdk'
 import { inject, injectable, tagged } from 'inversify'
 import { Redis } from 'ioredis'
 import _ from 'lodash'

@@ -1,4 +1,4 @@
-import { KnexExtended } from 'botpress/sdk'
+import { KnexExtended } from 'botpress/runtime-sdk'
 
 export abstract class Table {
   constructor(public knex: KnexExtended) {}

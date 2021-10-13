@@ -1,4 +1,4 @@
-import { IO, Logger } from 'botpress/sdk'
+import { IO, Logger } from 'botpress/runtime-sdk'
 import { parseActionInstruction } from 'common/action'
 import { inject, injectable, tagged } from 'inversify'
 import _ from 'lodash'

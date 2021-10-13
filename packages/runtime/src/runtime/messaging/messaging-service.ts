@@ -1,5 +1,5 @@
 import { MessagingClient } from '@botpress/messaging-client'
-import { IO, Logger, MessagingConfig } from 'botpress/sdk'
+import { IO, Logger, MessagingConfig } from 'botpress/runtime-sdk'
 import { formatUrl, isBpUrl } from 'common/url'
 import { inject, injectable, postConstruct } from 'inversify'
 import { ConfigProvider } from 'runtime/config'

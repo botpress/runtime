@@ -1,4 +1,4 @@
-import { Logger, RedisLock } from 'botpress/sdk'
+import { Logger, RedisLock } from 'botpress/runtime-sdk'
 import { IInitializeFromConfig } from 'common/typings'
 import { inject, injectable } from 'inversify'
 import { Redis } from 'ioredis'

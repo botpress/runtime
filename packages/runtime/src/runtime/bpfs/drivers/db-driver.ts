@@ -1,4 +1,4 @@
-import { DirectoryListingOptions } from 'botpress/sdk'
+import { DirectoryListingOptions } from 'botpress/runtime-sdk'
 import { WrapErrorsWith } from 'errors'
 import { inject, injectable } from 'inversify'
 import _ from 'lodash'

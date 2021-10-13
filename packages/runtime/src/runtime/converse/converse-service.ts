@@ -1,4 +1,4 @@
-import { IO } from 'botpress/sdk'
+import { IO } from 'botpress/runtime-sdk'
 import { InvalidParameterError } from 'errors'
 import { EventEmitter2 } from 'eventemitter2'
 import { inject, injectable, postConstruct } from 'inversify'

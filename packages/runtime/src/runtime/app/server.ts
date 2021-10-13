@@ -1,5 +1,5 @@
 import bodyParser from 'body-parser'
-import { Logger } from 'botpress/sdk'
+import { Logger } from 'botpress/runtime-sdk'
 import compression from 'compression'
 import cors from 'cors'
 import errorHandler from 'errorhandler'
@@ -67,8 +67,8 @@ export class HTTPServer {
       this.isBotpressReady = true
     })
 
-    const botpressConfig = await this.configProvider.getRuntimeConfig()
-    const config = botpressConfig.httpServer || ({} as any)
+    const runtimeConfig = await this.configProvider.getRuntimeConfig()
+    const config = runtimeConfig.httpServer!
 
     this.app.use((req, res, next) => {
       res.removeHeader('X-Powered-By') // Removes the default X-Powered-By: Express
@@ -136,6 +136,10 @@ export class HTTPServer {
         docs,
         ...devOnly
       })
+    })
+
+    this.app.get('/', (req, res) => {
+      res.send('')
     })
 
     process.HOST = config.host

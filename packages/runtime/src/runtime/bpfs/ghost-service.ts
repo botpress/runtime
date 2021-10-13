@@ -1,4 +1,4 @@
-import { DirectoryListingOptions, ListenHandle, Logger, UpsertOptions, BotConfig } from 'botpress/sdk'
+import { DirectoryListingOptions, ListenHandle, Logger, UpsertOptions, BotConfig } from 'botpress/runtime-sdk'
 import { createArchive } from 'common/archive'
 import { ObjectCache } from 'common/object-cache'
 import { EventEmitter2 } from 'eventemitter2'

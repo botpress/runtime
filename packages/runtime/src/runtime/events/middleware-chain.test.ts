@@ -1,5 +1,5 @@
 import 'bluebird-global'
-import { EventDirection, IO } from 'botpress/sdk'
+import { EventDirection, IO } from 'botpress/runtime-sdk'
 import { createSpyObject, MockObject } from 'runtime/misc/utils'
 import 'jest-extended'
 import 'reflect-metadata'

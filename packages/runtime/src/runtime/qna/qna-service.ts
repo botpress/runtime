@@ -1,4 +1,4 @@
-import * as sdk from 'botpress/sdk'
+import * as sdk from 'botpress/runtime-sdk'
 import { QnaEntry, QnaItem } from 'common/typings'
 import { inject, injectable } from 'inversify'
 import _ from 'lodash'

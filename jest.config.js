@@ -32,7 +32,7 @@ module.exports = {
   },
   resolver: '<rootDir>/packages/bp/src/jest-resolver.js',
   moduleNameMapper: {
-    '^botpress/sdk$': '<rootDir>/packages/bp/src/core/app/sdk_impl'
+    '^botpress/runtime-sdk$': '<rootDir>/packages/bp/src/core/app/sdk_impl'
   },
   testMatch: ['**/(src|test)/**/*.test.(ts|js)'],
   testPathIgnorePatterns: [

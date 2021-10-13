@@ -1,4 +1,4 @@
-import { Logger } from 'botpress/sdk'
+import { Logger } from 'botpress/runtime-sdk'
 import crypto from 'crypto'
 import globrex from 'globrex'
 import _ from 'lodash'

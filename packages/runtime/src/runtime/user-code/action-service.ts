@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { IO, Logger } from 'botpress/sdk'
+import { IO, Logger } from 'botpress/runtime-sdk'
 import { extractEventCommonArgs } from 'common/action'
 import { ObjectCache } from 'common/object-cache'
 import { ActionScope, ActionServer, LocalActionDefinition } from 'common/typings'

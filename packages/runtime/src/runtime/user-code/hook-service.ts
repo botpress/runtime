@@ -99,12 +99,6 @@ export namespace Hooks {
     }
   }
 
-  export class OnIncidentStatusChanged extends BaseHook {
-    constructor(bp: typeof sdk, incident: sdk.Incident) {
-      super('on_incident_status_changed', { bp, incident })
-    }
-  }
-
   export class BeforeBotImport extends BaseHook {
     constructor(bp: typeof sdk, botId: string, tmpFolder: string, hookResult: object) {
       super('before_bot_import', { bp, botId, tmpFolder, hookResult })
@@ -114,30 +108,6 @@ export namespace Hooks {
   export class OnBotError extends BaseHook {
     constructor(bp: typeof sdk, botId: string, events: sdk.LoggerEntry[]) {
       super('on_bot_error', { bp, botId, events })
-    }
-  }
-
-  export class OnStageChangeRequest extends BaseHook {
-    constructor(
-      bp: typeof sdk,
-      bot: sdk.BotConfig,
-      users: sdk.WorkspaceUserWithAttributes[],
-      pipeline: sdk.Pipeline,
-      hookResult: any
-    ) {
-      super('on_stage_request', { bp, bot, users, pipeline, hookResult }, { ...defaultHookOptions, throwOnError: true })
-    }
-  }
-
-  export class AfterStageChanged extends BaseHook {
-    constructor(
-      bp: typeof sdk,
-      previousBotConfig: sdk.BotConfig,
-      bot: sdk.BotConfig,
-      users: sdk.WorkspaceUserWithAttributes[],
-      pipeline: sdk.Pipeline
-    ) {
-      super('after_stage_changed', { bp, previousBotConfig, bot, users, pipeline })
     }
   }
 }
