@@ -1450,6 +1450,9 @@ declare module 'botpress/runtime-sdk' {
       eventDestination: IO.EventDestination
     ): Promise<object[]>
 
+    export function readFile(botId, fileName): Promise<Buffer>
+    export function getFilePath(botId: string, fileName: string): string
+
     /**
      * Mustache template to render. Can contain objects, arrays, strings.
      * @example '{{en}}', ['{{nested.de}}'], {notSoNested: '{{fr}}'}

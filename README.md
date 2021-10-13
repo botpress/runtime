@@ -66,8 +66,6 @@ These methods are no longer part of the "runtime sdk".
 - cms.deleteContentElements
 - cms.createOrUpdateContentElement
 - cms.saveFile
-- cms.readFile
-- cms.getFilePath
 
 ### Experimental
 

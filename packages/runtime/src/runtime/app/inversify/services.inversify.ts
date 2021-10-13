@@ -9,6 +9,7 @@ import { LocalJobService, JobService, RedisJobService } from 'runtime/distribute
 import { EventEngine, Queue, MemoryQueue } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
 import { LogsJanitor } from 'runtime/logger'
+import { MediaServiceProvider } from 'runtime/media'
 import { MessagingService } from 'runtime/messaging'
 import { NLUInferenceService } from 'runtime/nlu'
 import { QnaService } from 'runtime/qna'
@@ -21,6 +22,10 @@ import { TYPES } from '../types'
 const ServicesContainerModule = new ContainerModule((bind: interfaces.Bind) => {
   bind<CMSService>(TYPES.CMSService)
     .to(CMSService)
+    .inSingletonScope()
+
+  bind<MediaServiceProvider>(TYPES.MediaServiceProvider)
+    .to(MediaServiceProvider)
     .inSingletonScope()
 
   bind<ActionService>(TYPES.ActionService)

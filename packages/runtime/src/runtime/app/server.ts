@@ -16,6 +16,7 @@ import { ConfigProvider } from 'runtime/config'
 import { ConverseService } from 'runtime/converse'
 import { EventEngine, EventRepository } from 'runtime/events'
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
+import { MediaRouter, MediaServiceProvider } from 'runtime/media'
 import { MessagingRouter, MessagingService } from 'runtime/messaging'
 import yn from 'yn'
 
@@ -37,7 +38,8 @@ export class HTTPServer {
     @inject(TYPES.EventRepository) private eventRepo: EventRepository,
     @inject(TYPES.ConverseService) private converseService: ConverseService,
     @inject(TYPES.MessagingService) private messaging: MessagingService,
-    @inject(TYPES.BotService) private botService: BotService
+    @inject(TYPES.BotService) private botService: BotService,
+    @inject(TYPES.MediaServiceProvider) private mediaServiceProvider: MediaServiceProvider
   ) {
     this.app = express()
 
@@ -118,6 +120,9 @@ export class HTTPServer {
 
     const messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
     this.app.use('/api/v1/chat', messagingRouter.router)
+
+    const mediaRouter = new MediaRouter(this.logger, this.mediaServiceProvider)
+    this.app.use('/api/v1/bots/:botId/media', mediaRouter.router)
 
     this.app.use(function handleUnexpectedError(err, req, res, next) {
       const statusCode = err.statusCode || 400

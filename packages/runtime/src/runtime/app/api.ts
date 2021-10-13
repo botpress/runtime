@@ -19,6 +19,7 @@ import { EventEngine, EventRepository, Event } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
 import { LoggerProvider } from 'runtime/logger'
 import * as logEnums from 'runtime/logger/enums'
+import { MediaServiceProvider } from 'runtime/media'
 import { getMessageSignature } from 'runtime/security'
 import { HookService } from 'runtime/user-code'
 import { ChannelUserRepository } from 'runtime/users'
@@ -112,7 +113,7 @@ const ghost = (ghostService: GhostService): typeof sdk.ghost => {
   }
 }
 
-const cms = (cmsService: CMSService): typeof sdk.cms => {
+const cms = (cmsService: CMSService, mediaServiceProvider: MediaServiceProvider): typeof sdk.cms => {
   return {
     getContentElement: cmsService.getContentElement.bind(cmsService),
     getContentElements: cmsService.getContentElements.bind(cmsService),
@@ -122,6 +123,12 @@ const cms = (cmsService: CMSService): typeof sdk.cms => {
     },
     renderElement(contentId: string, args: any, eventDestination: sdk.IO.EventDestination): Promise<any> {
       return cmsService.renderElement(contentId, args, eventDestination)
+    },
+    async readFile(botId, fileName): Promise<Buffer> {
+      return mediaServiceProvider.forBot(botId).readFile(fileName)
+    },
+    getFilePath(botId: string, fileName: string): string {
+      return mediaServiceProvider.forBot(botId).getPublicURL(fileName)
     },
     renderTemplate(templateItem: sdk.cms.TemplateItem, context): sdk.cms.TemplateItem {
       return renderRecursive(templateItem, context)
@@ -189,6 +196,7 @@ export class BotpressRuntimeAPIProvider {
     @inject(TYPES.GhostService) ghostService: GhostService,
     @inject(TYPES.CMSService) cmsService: CMSService,
     @inject(TYPES.ConfigProvider) configProvider: ConfigProvider,
+    @inject(TYPES.MediaServiceProvider) mediaServiceProvider: MediaServiceProvider,
     @inject(TYPES.HookService) hookService: HookService,
     @inject(TYPES.EventRepository) eventRepo: EventRepository,
     @inject(TYPES.JobService) jobService: JobService,
@@ -203,7 +211,7 @@ export class BotpressRuntimeAPIProvider {
     this.kvs = kvs(keyValueStore)
     this.bots = bots(botService)
     this.ghost = ghost(ghostService)
-    this.cms = cms(cmsService)
+    this.cms = cms(cmsService, mediaServiceProvider)
     this.security = security()
     this.distributed = distributed(jobService)
     this.experimental = experimental(renderService)
