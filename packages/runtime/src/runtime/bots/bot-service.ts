@@ -16,6 +16,7 @@ import { CMSService } from 'runtime/cms'
 import { ConfigProvider } from 'runtime/config'
 import { JobService, makeRedisKey } from 'runtime/distributed'
 import { MessagingService } from 'runtime/messaging'
+import { NLUInferenceService } from 'runtime/nlu'
 import { Hooks, HookService } from 'runtime/user-code'
 import tmp from 'tmp'
 import { ComponentService } from './component-service'
@@ -46,7 +47,8 @@ export class BotService {
     @inject(TYPES.GhostService) private ghostService: GhostService,
     @inject(TYPES.HookService) private hookService: HookService,
     @inject(TYPES.JobService) private jobService: JobService,
-    @inject(TYPES.MessagingService) private messagingService: MessagingService
+    @inject(TYPES.MessagingService) private messagingService: MessagingService,
+    @inject(TYPES.NLUInferenceService) private nluInferenceService: NLUInferenceService
   ) {
     this._botIds = undefined
     this.componentService = new ComponentService(this.logger, this.ghostService, this.cms)
@@ -272,6 +274,8 @@ export class BotService {
 
       await this.cms.loadElementsForBot(botId)
 
+      await this.nluInferenceService.mountBot(botId)
+
       await this._extractLibsToDisk(botId)
       await this._extractBotNodeModules(botId)
 
@@ -307,6 +311,7 @@ export class BotService {
 
     await this.cms.clearElementsFromCache(botId)
     await this.messagingService.unloadMessagingForBot(botId)
+    await this.nluInferenceService.unmountBot(botId)
 
     const api = await createForGlobalHooks()
     await this.hookService.executeHook(new Hooks.AfterBotUnmount(api, botId))

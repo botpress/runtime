@@ -152,6 +152,21 @@ export interface RuntimeConfig {
    * @default false
    */
   noRepeatPolicy: boolean
+  nlu: NLUConfig
+}
+
+export interface NLUConfig {
+  /**
+   * Whether or not to train bots on mount
+   * @optional
+   */
+  queueTrainingOnBotMount?: boolean
+
+  /**
+   * Whether or not you want to use the deprecated legacy election
+   * @optional
+   */
+  legacyElection?: boolean
 }
 
 export interface DataRetentionConfig {

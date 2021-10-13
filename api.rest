@@ -1,13 +1,13 @@
 
 ### Import a bot
-POST http://localhost:3000/manage/welcome_bot/import
+POST http://localhost:3000/manage/test-bot/import
 X-Api-Key: abc123
 Content-Type: application/tar+gzip
 
-< ./bots/welcome_bot.tgz
+< ./bots/test-bot.tgz
 
 ### Delete bot
-POST http://localhost:3000/manage/welcome_bot/delete
+POST http://localhost:3000/manage/test-bot/delete
 X-Api-Key: abc123
 Content-Type: application/json
 

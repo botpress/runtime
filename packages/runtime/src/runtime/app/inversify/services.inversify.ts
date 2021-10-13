@@ -10,6 +10,7 @@ import { EventEngine, Queue, MemoryQueue } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
 import { LogsJanitor } from 'runtime/logger'
 import { MessagingService } from 'runtime/messaging'
+import { NLUInferenceService } from 'runtime/nlu'
 import { QnaService } from 'runtime/qna'
 
 import { HookService, ActionService } from 'runtime/user-code'
@@ -86,6 +87,10 @@ const ServicesContainerModule = new ContainerModule((bind: interfaces.Bind) => {
 
   bind<DataRetentionService>(TYPES.DataRetentionService)
     .to(DataRetentionService)
+    .inSingletonScope()
+
+  bind<NLUInferenceService>(TYPES.NLUInferenceService)
+    .to(NLUInferenceService)
     .inSingletonScope()
 })
 
