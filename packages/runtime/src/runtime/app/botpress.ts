@@ -15,6 +15,7 @@ import { addStepToEvent, EventCollector, StepScopes, StepStatus, EventEngine, Ev
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { LoggerDbPersister, LoggerFilePersister, LoggerProvider, LogsJanitor } from 'runtime/logger'
 import { MessagingService } from 'runtime/messaging'
+import { NLUInferenceService } from 'runtime/nlu'
 import { QnaService } from 'runtime/qna'
 import { Hooks, HookService } from 'runtime/user-code'
 
@@ -51,7 +52,8 @@ export class Botpress {
     @inject(TYPES.EventCollector) private eventCollector: EventCollector,
     @inject(TYPES.BotMonitoringService) private botMonitor: BotMonitoringService,
     @inject(TYPES.QnaService) private qnaService: QnaService,
-    @inject(TYPES.MessagingService) private messagingService: MessagingService
+    @inject(TYPES.MessagingService) private messagingService: MessagingService,
+    @inject(TYPES.NLUInferenceService) private nluInferenceService: NLUInferenceService
   ) {}
 
   async start() {
@@ -113,6 +115,7 @@ export class Botpress {
     await this.cmsService.initialize()
     await this.eventCollector.initialize(this.database)
     await this.qnaService.initialize()
+    await this.nluInferenceService.initialize()
     await this.messagingService.initialize()
 
     this.eventEngine.onBeforeIncomingMiddleware = async (event: sdk.IO.IncomingEvent) => {

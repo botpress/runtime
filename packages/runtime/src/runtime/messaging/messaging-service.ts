@@ -39,6 +39,7 @@ export class MessagingService {
     })
 
     this.clientSync = new MessagingClient({ url: process.core_env.MESSAGING_ENDPOINT! })
+    this.logger.info(`Using Messaging server at ${process.core_env.MESSAGING_ENDPOINT}`)
   }
 
   async loadMessagingForBot(botId: string) {

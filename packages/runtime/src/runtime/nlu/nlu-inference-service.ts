@@ -49,7 +49,6 @@ export class NLUInferenceService {
     this.nluClientProvider = new NLUClientProvider(configProvider)
   }
 
-  @postConstruct()
   public async initialize() {
     if (!process.core_env.NLU_ENDPOINT) {
       this.logger.warn('Missing NLU_ENDPOINT environment variable, NLU features disabled')
@@ -72,6 +71,7 @@ export class NLUInferenceService {
     })
 
     this.nluEnabled = true
+    this.logger.info(`Using NLU server at ${process.core_env.NLU_ENDPOINT}`)
   }
 
   public async teardown() {
