@@ -215,57 +215,6 @@ declare module 'botpress/runtime-sdk' {
     }
   }
 
-  export namespace NDU {
-    interface GenericTrigger {
-      conditions: DecisionTriggerCondition[]
-    }
-
-    export interface WorkflowTrigger extends GenericTrigger {
-      type: 'workflow'
-      workflowId: string
-      nodeId: string
-      /** When true, the user must be inside the specified workflow for the trigger to be active */
-      activeWorkflow?: boolean
-    }
-
-    export interface FaqTrigger extends GenericTrigger {
-      type: 'faq'
-      faqId: string
-      topicName: string
-    }
-
-    export interface NodeTrigger extends GenericTrigger {
-      type: 'node'
-      workflowId: string
-      nodeId: string
-    }
-
-    export type Trigger = NodeTrigger | FaqTrigger | WorkflowTrigger
-
-    export interface DialogUnderstanding {
-      triggers: {
-        [triggerId: string]: {
-          result: Dic<number>
-          trigger: Trigger
-        }
-      }
-      actions: Actions[]
-      predictions: { [key: string]: { triggerId: string; confidence: number } }
-    }
-
-    export interface Actions {
-      action: 'send' | 'startWorkflow' | 'redirect' | 'continue' | 'goToNode'
-      data?: SendContent | FlowRedirect
-    }
-
-    export interface FlowRedirect {
-      flow: string
-      node: string
-    }
-
-    export type SendContent = Pick<IO.Suggestion, 'confidence' | 'payloads' | 'source' | 'sourceDetails'>
-  }
-
   export namespace IO {
     export type EventDirection = 'incoming' | 'outgoing'
     export namespace WellKnownFlags {
@@ -408,7 +357,6 @@ declare module 'botpress/runtime-sdk' {
       readonly decision?: Suggestion
       /* HITL module has possibility to pause conversation */
       readonly isPause?: boolean
-      readonly ndu?: NDU.DialogUnderstanding
     }
 
     export interface OutgoingEvent extends Event {
@@ -451,8 +399,6 @@ declare module 'botpress/runtime-sdk' {
       bot: any
       /** Used internally by Botpress to keep the user's current location and upcoming instructions */
       context?: DialogContext
-      /** This variable points to the currently active workflow */
-      workflow: WorkflowHistory
       /**
        * EXPERIMENTAL
        * This includes all the flow/nodes which were traversed for the current event
@@ -506,21 +452,8 @@ declare module 'botpress/runtime-sdk' {
     export interface CurrentSession {
       lastMessages: DialogTurnHistory[]
       nluContexts?: NluContext[]
-      nduContext?: NduContext
-      workflows: {
-        [name: string]: WorkflowHistory
-      }
-      currentWorkflow?: string
       // Prevent warnings when using the code editor with custom properties
       [anyKey: string]: any
-    }
-
-    export interface WorkflowHistory {
-      eventId: string
-      parent?: string
-      /** Only one workflow can be active at a time, when a child workflow is active, the parent will be pending */
-      status: 'active' | 'pending' | 'completed'
-      success?: boolean
     }
 
     export type StoredEvent = {
@@ -551,14 +484,6 @@ declare module 'botpress/runtime-sdk' {
       context: string
       /** Represent the number of turns before the context is removed from the session */
       ttl: number
-    }
-
-    export interface NduContext {
-      last_turn_action_name: string
-      last_turn_highest_ranking_trigger_id: string
-      last_turn_node_id: string
-      last_turn_ts: number
-      last_topic: string
     }
 
     export interface DialogTurnHistory {
@@ -746,7 +671,6 @@ declare module 'botpress/runtime-sdk' {
     languages: string[]
     locked: boolean
     pipeline_status: BotPipelineStatus
-    oneflow?: boolean
 
     /**
      * constant number used to seed nlu random number generators
@@ -950,11 +874,6 @@ declare module 'botpress/runtime-sdk' {
     timeoutNode?: string
     type?: string
     timeout?: { name: string; flow: string; node: string }[]
-  }
-
-  export interface DecisionTriggerCondition {
-    id: string
-    params?: { [key: string]: any }
   }
 
   export interface Option {
