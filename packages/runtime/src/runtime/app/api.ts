@@ -19,6 +19,7 @@ import { EventEngine, EventRepository, Event } from 'runtime/events'
 import { KeyValueStore } from 'runtime/kvs'
 import { LoggerProvider } from 'runtime/logger'
 import * as logEnums from 'runtime/logger/enums'
+import { getMessageSignature } from 'runtime/security'
 import { HookService } from 'runtime/user-code'
 import { ChannelUserRepository } from 'runtime/users'
 
@@ -82,6 +83,12 @@ const kvs = (kvs: KeyValueStore): typeof sdk.kvs => {
     getConversationStorageKey: kvs.getConversationStorageKey.bind(kvs),
     getUserStorageKey: kvs.getUserStorageKey.bind(kvs),
     getGlobalStorageKey: kvs.getGlobalStorageKey.bind(kvs)
+  }
+}
+
+const security = (): typeof sdk.security => {
+  return {
+    getMessageSignature
   }
 }
 
@@ -168,6 +175,7 @@ export class BotpressRuntimeAPIProvider {
   ghost: typeof sdk.ghost
   cms: typeof sdk.cms
   experimental: typeof sdk.experimental
+  security: typeof sdk.security
   distributed: typeof sdk.distributed
 
   constructor(
@@ -196,6 +204,7 @@ export class BotpressRuntimeAPIProvider {
     this.bots = bots(botService)
     this.ghost = ghost(ghostService)
     this.cms = cms(cmsService)
+    this.security = security()
     this.distributed = distributed(jobService)
     this.experimental = experimental(renderService)
   }
@@ -221,6 +230,7 @@ export class BotpressRuntimeAPIProvider {
       ghost: this.ghost,
       bots: this.bots,
       cms: this.cms,
+      security: this.security,
       distributed: this.distributed,
       experimental: this.experimental,
       ButtonAction: renderEnums.ButtonAction
