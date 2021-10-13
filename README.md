@@ -10,10 +10,18 @@ There are two routes: import and delete bot. See `api.rest` for examples
 
 ## Removed methods from the SDK
 
+These methods are no longer part of the "runtime sdk".
+
 ### Realtime
 
 - realtime.sendPayload
 - realtime.getVisitorIdFromGuestSocketId
+
+### Ghost
+
+- ghost.(forBot|forBots|forGlobal|forRoot).upsertFile
+- ghost.(forBot|forBots|forGlobal|forRoot).deleteFile
+- ghost.(forBot|forBots|forGlobal|forRoot).renameFile
 
 ### HTTP
 
