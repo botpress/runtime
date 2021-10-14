@@ -9,12 +9,14 @@ import getos from './common/getos'
 import { Debug } from './debug'
 
 const printPlainError = err => {
-  /* eslint-disable no-console */
-  console.log('Error starting botpress')
-  console.log(err)
-  console.log(err.message)
-  console.log('---STACK---')
-  console.log(err.stack)
+  console.error('Error starting botpress')
+  console.error(err)
+
+  if (err instanceof Error) {
+    console.error(err.message)
+    console.error('---STACK---')
+    console.error(err.stack)
+  }
 }
 
 global.DEBUG = Debug

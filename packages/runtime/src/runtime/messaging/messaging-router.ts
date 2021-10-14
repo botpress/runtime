@@ -1,15 +1,14 @@
 import { Message } from '@botpress/messaging-client'
 import * as sdk from 'botpress/runtime-sdk'
 
-import { Router } from 'express'
+import { Router, NextFunction, Request, Response } from 'express'
 import joi from 'joi'
-import { HTTPServer } from 'runtime/app/server'
 import { CustomRouter } from 'runtime/app/server-utils'
 
 import { MessagingService } from './messaging-service'
 
 export class MessagingRouter extends CustomRouter {
-  constructor(private logger: sdk.Logger, private messaging: MessagingService, private http: HTTPServer) {
+  constructor(logger: sdk.Logger, private messaging: MessagingService) {
     super('Messaging', logger, Router({ mergeParams: true }))
     this.setupRoutes()
   }
@@ -17,72 +16,62 @@ export class MessagingRouter extends CustomRouter {
   public setupRoutes(): void {
     this.router.post(
       '/receive',
-      this.asyncMiddleware(async (req, res, next) => {
-        if (req.body?.type !== 'message.new') {
-          return res.sendStatus(200)
+      this.validateRequest.bind(this),
+      this.asyncMiddleware(async (req, res) => {
+        const event: MessagingEvent = req.body
+
+        if (event.type === 'message.new') {
+          const { error } = MessageNewEventSchema.validate(event.data)
+          if (error) {
+            return res.status(400).send(error.message)
+          }
+
+          await this.messaging.receive(event.data as MessageNewEventData)
         }
 
-        const msg = await joi.validate<ReceiveRequest>(req.body, ReceiveSchema)
-
-        if (!this.messaging.isExternal) {
-          return next?.(new Error('Messaging must be external'))
-        } else if (
-          this.messaging.isExternal &&
-          (!req.headers['x-webhook-token'] ||
-            req.headers['x-webhook-token'] !== this.messaging.getWebhookToken(msg.data.clientId))
-        ) {
-          return next?.(new Error('Invalid webhook token'))
-        }
-
-        try {
-          await joi.validate(req.body, ReceiveSchema)
-        } catch (err) {
-          throw new Error('Invalid payload')
-        }
-
-        await this.messaging.receive({
-          clientId: msg.data.clientId,
-          channel: msg.data.channel,
-          userId: msg.data.userId,
-          conversationId: msg.data.conversationId,
-          messageId: msg.data.message.id,
-          payload: msg.data.message.payload
-        })
-
-        res.sendStatus(200)
+        return res.sendStatus(200)
       })
     )
   }
-}
 
-interface ReceiveRequest {
-  type: string
-  data: {
-    clientId: string
-    userId: string
-    conversationId: string
-    channel: string
-    message: Message
+  private validateRequest(req: Request, res: Response, next: NextFunction) {
+    const token = req.headers['x-webhook-token']
+
+    if (!token || token !== this.messaging.getWebhookToken(req.body?.data?.clientId)) {
+      return next(new Error('Invalid webhook token'))
+    } else {
+      return next(undefined)
+    }
   }
 }
 
-const ReceiveSchema = {
-  type: joi.string().required(),
-  data: joi
-    .object({
-      clientId: joi.string().required(),
-      userId: joi.string().required(),
-      conversationId: joi.string().required(),
-      channel: joi.string().required(),
-      message: joi
-        .object({
-          id: joi.string().required(),
-          conversationId: joi.string().required(),
-          authorId: joi.string().required(),
-          sentOn: joi.date().required(),
-          payload: joi.object().required()
-        })
-        .required()
-    })
-    .required()
+export interface MessageNewEventData {
+  clientId: string
+  userId: string
+  conversationId: string
+  channel: string
+  message: Message
 }
+
+interface MessagingEvent {
+  type: 'message.new' | 'user.new'
+  data: any
+}
+
+const MessageNewEventSchema = joi
+  .object({
+    clientId: joi.string().required(),
+    userId: joi.string().required(),
+    conversationId: joi.string().required(),
+    channel: joi.string().required(),
+    message: joi
+      .object({
+        id: joi.string().required(),
+        conversationId: joi.string().required(),
+        authorId: joi.string().required(),
+        sentOn: joi.date().required(),
+        payload: joi.object().required()
+      })
+      .required()
+  })
+  .required()

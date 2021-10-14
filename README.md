@@ -8,6 +8,8 @@ To use, create a .env file with these keys:
 
 There are two routes: import and delete bot. See `api.rest` for examples
 
+\*\* Main repo last commit sync: cf93a1616ca512deaa0ec4e9fa81526e97cbf7bc
+
 ## Removed methods from the SDK
 
 These methods are no longer part of the "runtime sdk".

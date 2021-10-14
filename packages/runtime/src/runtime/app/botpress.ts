@@ -114,7 +114,7 @@ export class Botpress {
 
     await this.cmsService.initialize()
     await this.eventCollector.initialize(this.database)
-    await this.qnaService.initialize()
+    this.qnaService.initialize()
     await this.nluInferenceService.initialize()
     await this.messagingService.initialize()
 
@@ -170,7 +170,7 @@ export class Botpress {
       await this.hookService.executeHook(new Hooks.OnBotError(this.api, botId, events))
     }
 
-    await this.stateManager.initialize()
+    this.stateManager.initialize()
     await this.logJanitor.start()
     await this.dialogJanitor.start()
     this.eventCollector.start()

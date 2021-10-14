@@ -42,7 +42,7 @@ export class RedisObjectCache implements ObjectCache, IInitializeFromConfig {
     } else if (channel === REDIS_INVALIDATE) {
       await this._memCache.invalidate(message)
     } else if (channel === REDIS_SYNC) {
-      await this.events.emit('syncDbFilesToDisk', message)
+      this.events.emit('syncDbFilesToDisk', message)
     }
   }
 
@@ -78,7 +78,7 @@ export class RedisObjectCache implements ObjectCache, IInitializeFromConfig {
     if (this._redisPub) {
       await this._redisPub.publish(REDIS_SYNC, message)
     } else {
-      await this.events.emit('syncDbFilesToDisk', message)
+      this.events.emit('syncDbFilesToDisk', message)
     }
   }
 }

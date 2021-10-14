@@ -1,8 +1,10 @@
 import { IO, Logger } from 'botpress/runtime-sdk'
+
 import { inject, injectable, optional, tagged } from 'inversify'
 import _ from 'lodash'
 import nanoid from 'nanoid'
 
+import { getErrorMessage } from 'runtime/misc/utils'
 import { TYPES } from '../../types'
 
 import { defaultOptions, JobWrapper, Queue, QueueConsumer, QueueOptions } from '.'
@@ -10,8 +12,8 @@ import { defaultOptions, JobWrapper, Queue, QueueConsumer, QueueOptions } from '
 @injectable()
 export class MemoryQueue<E extends IO.Event> implements Queue<E> {
   private _options: QueueOptions
-  private _queue: Array<JobWrapper<E>> = []
-  private _subscribers: Array<Function> = []
+  private _queue: JobWrapper<E>[] = []
+  private _subscribers: Function[] = []
   private _lock: { [queueId: string]: boolean } = {}
   private _drain: NodeJS.Timer
 
@@ -100,7 +102,7 @@ export class MemoryQueue<E extends IO.Event> implements Queue<E> {
     try {
       await Promise.mapSeries(this._subscribers, fn => fn(job))
     } catch (err) {
-      this.logger.attachError(err).warn(`${this.name} queue failed to process job: ${err.message}`)
+      this.logger.attachError(err).warn(`${this.name} queue failed to process job: ${getErrorMessage(err)}`)
 
       if (retries + 1 <= this._options.retries) {
         // eslint-disable-next-line @typescript-eslint/no-floating-promises

@@ -119,7 +119,7 @@ export class ActionStrategy implements InstructionStrategy {
 
     debug.forBot(botId, `[${event.target}] execute action "${actionName}"`)
 
-    const service = await this.actionService.forBot(botId)
+    const service = this.actionService.forBot(botId)
 
     try {
       const hasAction = await service.hasAction(actionName)
