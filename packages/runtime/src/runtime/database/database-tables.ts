@@ -1,5 +1,6 @@
 import Knex from 'knex'
 import { GhostFilesTable } from 'runtime/bpfs/ghost_files-table'
+import { GhostRevisionsTable } from 'runtime/bpfs/ghost_revisions-table'
 import { DialogSessionTable } from 'runtime/dialog/sessions/dialog_sessions-table'
 import { EventsTable } from 'runtime/events/event-table'
 import { KeyValueStoreTable } from 'runtime/kvs/kvs-table'
@@ -15,6 +16,7 @@ const tables: typeof Table[] = [
   ChannelUsersTable,
   DialogSessionTable,
   GhostFilesTable,
+  GhostRevisionsTable,
   KeyValueStoreTable,
   DataRetentionTable,
   EventsTable,
