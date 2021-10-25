@@ -9,12 +9,14 @@ import getos from './common/getos'
 import { Debug } from './debug'
 
 const printPlainError = err => {
-  /* eslint-disable no-console */
-  console.log('Error starting botpress')
-  console.log(err)
-  console.log(err.message)
-  console.log('---STACK---')
-  console.log(err.stack)
+  console.error('Error starting botpress')
+  console.error(err)
+
+  if (err instanceof Error) {
+    console.error(err.message)
+    console.error('---STACK---')
+    console.error(err.stack)
+  }
 }
 
 global.DEBUG = Debug
@@ -93,10 +95,20 @@ try {
           description: 'Whether you want to run in production mode or not',
           default: false,
           type: 'boolean'
+        },
+        autoMigrate: {
+          description:
+            'When this flag is set, Botpress will automatically migrate your content and configuration files when upgrading',
+          default: false,
+          type: 'boolean'
         }
       },
       async argv => {
         process.IS_PRODUCTION = argv.production || yn(process.env.BP_PRODUCTION) || yn(process.env.CLUSTER_ENABLED)
+
+        process.AUTO_MIGRATE =
+          process.env.AUTO_MIGRATE === undefined ? yn(argv.autoMigrate) : yn(process.env.AUTO_MIGRATE)
+
         process.VERBOSITY_LEVEL = argv.verbose ? Number(argv.verbose) : defaultVerbosity
         process.distro = await getos()
 

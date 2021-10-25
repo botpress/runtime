@@ -5,6 +5,8 @@ import { DialogSessionTable } from 'runtime/dialog/sessions/dialog_sessions-tabl
 import { EventsTable } from 'runtime/events/event-table'
 import { KeyValueStoreTable } from 'runtime/kvs/kvs-table'
 import { LogsTable } from 'runtime/logger/logs-table'
+import { ServerMetadataTable } from 'runtime/migration/metadata-table'
+import { MigrationsTable } from 'runtime/migration/migrations-table'
 import { TasksTable } from 'runtime/user-code/action-server/tasks-table'
 import { ChannelUsersTable, DataRetentionTable } from 'runtime/users/tables'
 
@@ -20,6 +22,8 @@ const tables: typeof Table[] = [
   KeyValueStoreTable,
   DataRetentionTable,
   EventsTable,
+  ServerMetadataTable,
+  MigrationsTable,
   TasksTable
 ]
 

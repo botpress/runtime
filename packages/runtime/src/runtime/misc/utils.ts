@@ -132,3 +132,15 @@ export const sanitizeFileName = (name: string): string => {
     .replace(/\.json$/i, '')
     .replace(/[\t\s]/gi, '-')
 }
+
+export const getErrorMessage = (error: Error | string | unknown): string => {
+  if (typeof error === 'string') {
+    return error
+  }
+
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  return ''
+}

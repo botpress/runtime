@@ -4,10 +4,8 @@ import { formatUrl, isBpUrl } from 'common/url'
 import { inject, injectable, postConstruct } from 'inversify'
 import { ConfigProvider } from 'runtime/config'
 import { EventEngine, Event } from 'runtime/events'
-import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { TYPES } from 'runtime/types'
-
-const DEFAULT_TYPING_DELAY = 500
+import { MessageNewEventData } from './messaging-router'
 
 @injectable()
 export class MessagingService {
@@ -16,10 +14,10 @@ export class MessagingService {
   private botsByClientId: { [clientId: string]: string } = {}
   private webhookTokenByClientId: { [botId: string]: string } = {}
   private channelNames = ['messenger', 'slack', 'smooch', 'teams', 'telegram', 'twilio', 'vonage']
+  private newUsers: number = 0
 
   public isExternal: boolean
   public internalPassword: string | undefined
-  private messagingEndpoint!: string
 
   constructor(
     @inject(TYPES.EventEngine) private eventEngine: EventEngine,
@@ -38,8 +36,8 @@ export class MessagingService {
       handler: this.handleOutgoingEvent.bind(this)
     })
 
-    this.clientSync = new MessagingClient({ url: process.core_env.MESSAGING_ENDPOINT! })
-    this.logger.info(`Using Messaging server at ${process.core_env.MESSAGING_ENDPOINT}`)
+    this.clientSync = new MessagingClient({ url: this.getMessagingUrl() })
+    this.logger.info(`Using Messaging server at ${this.getMessagingUrl()}`)
   }
 
   async loadMessagingForBot(botId: string) {
@@ -77,7 +75,7 @@ export class MessagingService {
     }
 
     const botClient = new MessagingClient({
-      url: process.core_env.MESSAGING_ENDPOINT!,
+      url: this.getMessagingUrl(),
       auth: { clientId: messaging.id!, clientToken: messaging.token! }
     })
     this.clientsByBotId[botId] = botClient
@@ -101,24 +99,17 @@ export class MessagingService {
     })
   }
 
-  async receive(args: {
-    clientId: string
-    channel: string
-    userId: string
-    conversationId: string
-    messageId: string
-    payload: any
-  }) {
+  async receive(event: MessageNewEventData) {
     return this.eventEngine.sendEvent(
       Event({
         direction: 'incoming',
-        type: args.payload.type,
-        payload: args.payload,
-        channel: args.channel,
-        threadId: args.conversationId,
-        target: args.userId,
-        messageId: args.messageId,
-        botId: this.botsByClientId[args.clientId]
+        type: event.message.payload.type,
+        payload: event.message.payload,
+        channel: event.channel,
+        threadId: event.conversationId,
+        target: event.userId,
+        messageId: event.message.id,
+        botId: this.botsByClientId[event.clientId]
       })
     )
   }
@@ -135,11 +126,6 @@ export class MessagingService {
       payloadAbsoluteUrl
     )
     event.messageId = message.id
-
-    if (event.payload.typing === true || event.payload.type === 'typing') {
-      const value = (event.payload.type === 'typing' ? event.payload.value : undefined) || DEFAULT_TYPING_DELAY
-      await new Promise(resolve => setTimeout(resolve, value))
-    }
 
     return next(undefined, true, false)
   }
@@ -169,7 +155,23 @@ export class MessagingService {
     return payload
   }
 
+  public getMessagingUrl() {
+    return process.core_env.MESSAGING_ENDPOINT!
+  }
+
   public getWebhookToken(clientId: string) {
     return this.webhookTokenByClientId[clientId]
+  }
+
+  public getNewUsersCount({ resetCount }: { resetCount: boolean }) {
+    const count = this.newUsers
+    if (resetCount) {
+      this.newUsers = 0
+    }
+    return count
+  }
+
+  public incrementNewUsersCount() {
+    this.newUsers++
   }
 }

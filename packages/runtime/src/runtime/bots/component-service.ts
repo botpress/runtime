@@ -1,5 +1,5 @@
-import { extractArchive } from 'common/archive'
 import { Logger } from 'botpress/runtime-sdk'
+import { extractArchive } from 'common/archive'
 import fse from 'fs-extra'
 import _ from 'lodash'
 import mkdirp from 'mkdirp'

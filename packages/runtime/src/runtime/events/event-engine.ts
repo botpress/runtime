@@ -107,8 +107,9 @@ export class EventEngine {
     @inject(TYPES.EventCollector) private eventCollector: EventCollector
   ) {
     this.incomingQueue.subscribe(async (event: sdk.IO.IncomingEvent) => {
+      await this._infoMiddleware(event)
       this.onBeforeIncomingMiddleware && (await this.onBeforeIncomingMiddleware(event))
-      const { incoming } = await this.getBotMiddlewareChains(event.botId)
+      const { incoming } = await this.getMiddlewareChains()
       await incoming.run(event)
       this.onAfterIncomingMiddleware && (await this.onAfterIncomingMiddleware(event))
       this._incomingPerf.record()
@@ -116,7 +117,7 @@ export class EventEngine {
 
     this.outgoingQueue.subscribe(async (event: sdk.IO.OutgoingEvent) => {
       this.onBeforeOutgoingMiddleware && (await this.onBeforeOutgoingMiddleware(event))
-      const { outgoing } = await this.getBotMiddlewareChains(event.botId)
+      const { outgoing } = await this.getMiddlewareChains()
       await outgoing.run(event)
       this._outgoingPerf.record()
 
@@ -179,6 +180,8 @@ export class EventEngine {
   }
 
   async sendEvent(event: sdk.IO.Event): Promise<void> {
+    this.validateEvent(event)
+
     if (event.debugger) {
       addStepToEvent(event, StepScopes.Received)
       this.eventCollector.storeEvent(event)
@@ -195,7 +198,11 @@ export class EventEngine {
     }
   }
 
-  async replyToEvent(eventDestination: sdk.IO.EventDestination, payloads: any[], incomingEventId?: string) {
+  async replyToEvent(
+    eventDestination: sdk.IO.EventDestination,
+    payloads: any[],
+    incomingEventId?: string
+  ): Promise<void> {
     // prettier-ignore
     const keys: (keyof sdk.IO.EventDestination)[] = ['botId', 'channel', 'target', 'threadId']
 
@@ -224,7 +231,7 @@ export class EventEngine {
     return this.outgoingQueue.isQueueLockedForJob(event)
   }
 
-  private async getBotMiddlewareChains(botId: string) {
+  private async getMiddlewareChains() {
     const incoming = new MiddlewareChain()
     const outgoing = new MiddlewareChain()
 
@@ -243,6 +250,29 @@ export class EventEngine {
     const result = joi.validate(middleware, mwSchema)
     if (result.error) {
       throw new VError(result.error, 'Invalid middleware definition')
+    }
+  }
+
+  private validateEvent(event: sdk.IO.Event) {
+    if (process.IS_PRODUCTION) {
+      // In production we optimize for speed, validation is useful for debugging purposes
+      return
+    }
+
+    const result = joi.validate(event, eventSchema)
+    if (result.error) {
+      throw new VError(result.error, 'Invalid Botpress Event')
+    }
+  }
+
+  private async _infoMiddleware(event: sdk.IO.Event) {
+    const sendText = async text => {
+      await this.replyToEvent(event, [{ text, markdown: true }])
+      event.setFlag(WellKnownFlags.SKIP_DIALOG_ENGINE, true)
+    }
+
+    if (event.preview === 'BP_VERSION') {
+      await sendText(`Version: ${process.BOTPRESS_VERSION}`)
     }
   }
 }

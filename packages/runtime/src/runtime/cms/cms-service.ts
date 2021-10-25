@@ -284,15 +284,6 @@ export class CMSService implements IDisposeOnExit {
       .then(row => (row && Number(row.count)) || 0)
   }
 
-  async countContentElementsForContentType(botId: string, contentType: string): Promise<number> {
-    return this.memDb(this.contentTable)
-      .where({ botId })
-      .andWhere({ contentType })
-      .count('* as count')
-      .first()
-      .then(row => (row && Number(row.count)) || 0)
-  }
-
   async getAllContentTypes(botId: string): Promise<ContentType[]> {
     const botConfig = await this.configProvider.getBotConfig(botId)
     const enabledTypes = botConfig.imports.contentTypes || this.contentTypesByBot[botId]
@@ -305,20 +296,6 @@ export class CMSService implements IDisposeOnExit {
       throw new Error(`Content type "${contentTypeId}" is not a valid registered content type ID`)
     }
     return type
-  }
-
-  async getRandomContentElement(contentTypeId: string): Promise<ContentElement> {
-    return this.memDb(this.contentTable)
-      .where('contentType', contentTypeId)
-      .orderByRaw('random()')
-      .limit(1)
-      .first()
-      .then()
-  }
-
-  private _generateElementId(contentTypeId: string): string {
-    const prefix = contentTypeId.replace(/^#/, '')
-    return `${prefix}-${nanoid(6)}`
   }
 
   async elementIdExists(botId: string, id: string): Promise<boolean> {

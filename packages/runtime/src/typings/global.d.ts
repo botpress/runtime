@@ -6,7 +6,7 @@ declare namespace NodeJS {
   }
 
   export interface Global {
-    printErrorDefault(err: Error): void
+    printErrorDefault(err: unknown): void
     DEBUG: IDebug
     BOTPRESS_CORE_EVENT: IEmitCoreEvent
     BOTPRESS_CORE_EVENT_TYPES: BotpressCoreEvents
@@ -36,6 +36,10 @@ declare namespace NodeJS {
     core_env: BotpressEnvironmentVariables
     distro: OSDistribution
     BOTPRESS_EVENTS: any
+    AUTO_MIGRATE: boolean
+    MIGRATE_CMD?: 'up' | 'down'
+    MIGRATE_TARGET?: string
+    MIGRATE_DRYRUN?: boolean
     IS_FAILSAFE: boolean
     /** A random ID generated on server start to identify each server in a cluster */
     SERVER_ID: string
@@ -209,6 +213,21 @@ declare interface BotpressEnvironmentVariables {
    * @default 50
    */
   readonly BP_BPFS_UPLOAD_CONCURRENCY?: number
+
+  /** Runs all migrations from v12.0.0 up to the latest migration found in modules and core */
+  readonly TESTMIG_ALL?: boolean
+
+  /** Runs future migrations, ignore completed migrations & sets the config version to the version in package.json */
+  readonly TESTMIG_NEW?: boolean
+
+  /** Migration Testing: Simulate a specific version for the server, ex: 12.5.0 */
+  readonly TESTMIG_BP_VERSION?: string
+
+  /** Migration Testing: Simulate a specific version for the configuration file, ex: 12.4.0 */
+  readonly TESTMIG_CONFIG_VERSION?: string
+
+  /** Migration Testing: Set this to true to run completed migrations everytime the server starts */
+  readonly TESTMIG_IGNORE_COMPLETED?: boolean
 }
 
 interface IDebug {

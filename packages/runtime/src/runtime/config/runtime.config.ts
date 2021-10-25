@@ -66,6 +66,7 @@ export interface LogsConfig {
  */
 
 export interface RuntimeConfig {
+  version: string
   httpServer?: {
     /**
      * @default localhost

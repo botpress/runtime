@@ -116,7 +116,7 @@ export class HTTPServer {
     const manageRouter = new ManageRouter(this.logger, this.botService, this)
     this.app.use('/manage', manageRouter.router)
 
-    const messagingRouter = new MessagingRouter(this.logger, this.messaging, this)
+    const messagingRouter = new MessagingRouter(this.logger, this.messaging)
     this.app.use('/api/v1/chat', messagingRouter.router)
 
     this.app.use(function handleUnexpectedError(err, req, res, next) {
