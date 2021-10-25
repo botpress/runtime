@@ -15,6 +15,7 @@ import { addStepToEvent, EventCollector, StepScopes, StepStatus, EventEngine, Ev
 import { AppLifecycle, AppLifecycleEvents } from 'runtime/lifecycle'
 import { LoggerDbPersister, LoggerFilePersister, LoggerProvider, LogsJanitor } from 'runtime/logger'
 import { MessagingService } from 'runtime/messaging'
+import { MigrationService } from 'runtime/migration'
 import { NLUInferenceService } from 'runtime/nlu'
 import { QnaService } from 'runtime/qna'
 import { Hooks, HookService } from 'runtime/user-code'
@@ -52,6 +53,7 @@ export class Botpress {
     @inject(TYPES.EventCollector) private eventCollector: EventCollector,
     @inject(TYPES.BotMonitoringService) private botMonitor: BotMonitoringService,
     @inject(TYPES.QnaService) private qnaService: QnaService,
+    @inject(TYPES.MigrationService) private migrationService: MigrationService,
     @inject(TYPES.MessagingService) private messagingService: MessagingService,
     @inject(TYPES.NLUInferenceService) private nluInferenceService: NLUInferenceService
   ) {}
@@ -74,6 +76,7 @@ export class Botpress {
     AppLifecycle.setDone(AppLifecycleEvents.CONFIGURATION_LOADED)
 
     await this.restoreDebugScope()
+    await this.migrationService.initialize()
     await this.initializeServices()
 
     await this.discoverBots(bots)

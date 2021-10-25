@@ -4,6 +4,7 @@ import { Botpress } from 'runtime/app/botpress'
 import { ConfigProvider } from 'runtime/config'
 import { EventCollector } from 'runtime/events'
 import { LoggerDbPersister, LoggerFilePersister, LoggerProvider, PersistedConsoleLogger } from 'runtime/logger'
+import { MigrationService } from 'runtime/migration'
 import { BotpressRuntimeAPIProvider } from '../api'
 import { HTTPServer } from '../server'
 
@@ -76,6 +77,11 @@ container
 container
   .bind<EventCollector>(TYPES.EventCollector)
   .to(EventCollector)
+  .inSingletonScope()
+
+container
+  .bind<MigrationService>(TYPES.MigrationService)
+  .to(MigrationService)
   .inSingletonScope()
 
 const isPackaged = !!eval('process.pkg')
