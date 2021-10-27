@@ -2,6 +2,8 @@ import { MessagingClient } from '@botpress/messaging-client'
 import { IO, Logger, MessagingConfig } from 'botpress/runtime-sdk'
 import { formatUrl, isBpUrl } from 'common/url'
 import { inject, injectable, postConstruct } from 'inversify'
+import LRUCache from 'lru-cache'
+import ms from 'ms'
 import { ConfigProvider } from 'runtime/config'
 import { EventEngine, Event } from 'runtime/events'
 import { TYPES } from 'runtime/types'
@@ -13,8 +15,10 @@ export class MessagingService {
   private clientsByBotId: { [botId: string]: MessagingClient } = {}
   private botsByClientId: { [clientId: string]: string } = {}
   private webhookTokenByClientId: { [botId: string]: string } = {}
-  private channelNames = ['messenger', 'slack', 'smooch', 'teams', 'telegram', 'twilio', 'vonage']
+  private channelNames = ['messenger', 'slack', 'smooch', 'teams', 'telegram', 'twilio', 'vonage', 'messaging']
   private newUsers: number = 0
+  private eventIdToMessageIdCache: LRUCache<string, string>
+  private collectingForMessageCache: LRUCache<string, boolean>
 
   public isExternal: boolean
   public internalPassword: string | undefined
@@ -25,6 +29,8 @@ export class MessagingService {
     @inject(TYPES.Logger) private logger: Logger
   ) {
     this.isExternal = Boolean(process.core_env.MESSAGING_ENDPOINT)
+    this.eventIdToMessageIdCache = new LRUCache<string, string>({ max: 5000, maxAge: ms('5m') })
+    this.collectingForMessageCache = new LRUCache<string, boolean>({ max: 5000, maxAge: ms('5m') })
   }
 
   async initialize() {
@@ -99,19 +105,24 @@ export class MessagingService {
     })
   }
 
-  async receive(event: MessageNewEventData) {
-    return this.eventEngine.sendEvent(
-      Event({
-        direction: 'incoming',
-        type: event.message.payload.type,
-        payload: event.message.payload,
-        channel: event.channel,
-        threadId: event.conversationId,
-        target: event.userId,
-        messageId: event.message.id,
-        botId: this.botsByClientId[event.clientId]
-      })
-    )
+  async receive(msg: MessageNewEventData) {
+    const event = Event({
+      direction: 'incoming',
+      type: msg.message.payload.type,
+      payload: msg.message.payload,
+      channel: msg.channel,
+      threadId: msg.conversationId,
+      target: msg.userId,
+      messageId: msg.message.id,
+      botId: this.botsByClientId[msg.clientId]
+    })
+
+    this.eventIdToMessageIdCache.set(event.id, msg.message.id)
+    if (msg.collect) {
+      this.collectingForMessageCache.set(msg.message.id, true)
+    }
+
+    return this.eventEngine.sendEvent(event)
   }
 
   private async handleOutgoingEvent(event: IO.OutgoingEvent, next: IO.MiddlewareNextCallback) {
@@ -120,14 +131,33 @@ export class MessagingService {
     }
 
     const payloadAbsoluteUrl = this.convertToAbsoluteUrls(event.payload)
+
     const message = await this.clientsByBotId[event.botId].messages.create(
       event.threadId!,
       undefined,
-      payloadAbsoluteUrl
+      payloadAbsoluteUrl,
+      { incomingId: this.eventIdToMessageIdCache.get(event.incomingEventId!)! }
     )
     event.messageId = message.id
 
     return next(undefined, true, false)
+  }
+
+  public informProcessingDone(event: IO.IncomingEvent) {
+    if (this.collectingForMessageCache.get(event.messageId!)) {
+      // We don't want the waiting for the queue to be empty to freeze other messages
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      this.sendProcessingDone(event)
+    }
+  }
+
+  private async sendProcessingDone(event: IO.IncomingEvent) {
+    try {
+      await this.eventEngine.waitOutgoingQueueEmpty(event)
+      await this.clientsByBotId[event.botId].messages.endTurn(event.messageId!)
+    } catch (e) {
+      this.logger.attachError(e).error('Failed to inform messaging of completed processing')
+    }
   }
 
   private convertToAbsoluteUrls(payload: any) {
