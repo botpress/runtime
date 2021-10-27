@@ -132,6 +132,8 @@ export class MemoryQueue<E extends IO.Event> implements Queue<E> {
       }
     } finally {
       delete this._lock[queueId]
+      this.checkEmptyQueue(job)
+
       if (this._queue.length) {
         setImmediate(() => this.tick())
       }
