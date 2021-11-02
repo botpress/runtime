@@ -153,9 +153,10 @@ export class MessagingService {
     try {
       await this.eventEngine.waitOutgoingQueueEmpty(event)
       await this.clientsByBotId[event.botId].messages.endTurn(event.messageId!)
-      this.collectingCache.del(event.messageId!)
     } catch (e) {
       this.logger.attachError(e).error('Failed to inform messaging of completed processing')
+    } finally {
+      this.collectingCache.del(event.messageId!)
     }
   }
 
