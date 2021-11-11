@@ -142,7 +142,7 @@ export class MessagingService {
   }
 
   public informProcessingDone(event: IO.IncomingEvent) {
-    if (this.collectingCache.get(event.messageId!)) {
+    if (this.collectingCache.get(event.id!)) {
       // We don't want the waiting for the queue to be empty to freeze other messages
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.sendProcessingDone(event)
@@ -156,7 +156,7 @@ export class MessagingService {
     } catch (e) {
       this.logger.attachError(e).error('Failed to inform messaging of completed processing')
     } finally {
-      this.collectingCache.del(event.messageId!)
+      this.collectingCache.del(event.id!)
     }
   }
 
