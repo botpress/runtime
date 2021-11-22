@@ -5,6 +5,7 @@ import { inject, injectable, tagged } from 'inversify'
 import path from 'path'
 import { TYPES } from 'runtime/app/types'
 import { forceForwardSlashes } from 'runtime/misc/utils'
+import yn from 'yn'
 
 export namespace CacheInvalidators {
   enum ChangeEventAction {
@@ -45,6 +46,10 @@ export namespace CacheInvalidators {
 
     install(objectCache: ObjectCache) {
       this.cache = objectCache
+
+      if (yn(process.core_env.CORE_DISABLE_FILE_LISTENERS)) {
+        return
+      }
 
       const foldersToWatch = [
         path.join(process.PROJECT_LOCATION, 'data', 'bots'),

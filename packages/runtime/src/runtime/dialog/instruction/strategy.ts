@@ -1,5 +1,5 @@
 import { IO, Logger } from 'botpress/runtime-sdk'
-import { parseActionInstruction } from 'common/action'
+import { extractEventCommonArgs, parseActionInstruction } from 'common/action'
 import { inject, injectable, tagged } from 'inversify'
 import _ from 'lodash'
 import { TYPES } from 'runtime/app/types'
@@ -79,14 +79,7 @@ export class ActionStrategy implements InstructionStrategy {
       event.state.session.lastMessages.push(message)
     }
 
-    args = {
-      ...args,
-      event,
-      user: _.get(event, 'state.user', {}),
-      session: _.get(event, 'state.session', {}),
-      temp: _.get(event, 'state.temp', {}),
-      bot: _.get(event, 'state.bot', {})
-    }
+    args = extractEventCommonArgs(event, args)
 
     const eventDestination = _.pick(event, ['channel', 'target', 'botId', 'threadId'])
     const renderedElements = await this.cms.renderElement(outputType, args, eventDestination)
@@ -107,13 +100,7 @@ export class ActionStrategy implements InstructionStrategy {
       throw new Error(`Action "${actionName}" has invalid arguments (not a valid JSON string): ${argsStr}`)
     }
 
-    const actionArgs = {
-      event,
-      user: _.get(event, 'state.user', {}),
-      session: _.get(event, 'state.session', {}),
-      temp: _.get(event, 'state.temp', {}),
-      bot: _.get(event, 'state.bot', {})
-    }
+    const actionArgs = extractEventCommonArgs(event, args)
 
     args = _.mapValues(args, value => renderTemplate(value, actionArgs))
 
@@ -130,7 +117,7 @@ export class ActionStrategy implements InstructionStrategy {
 
       await service.runAction({ actionName, incomingEvent: event, actionArgs: args })
     } catch (err) {
-      this.logger.error(err.message)
+      this.logger.attachError(err).error(err.message)
       const { currentNode, currentFlow } = _.get(event, 'state.context', {})
       addErrorToEvent(
         {
@@ -159,12 +146,7 @@ export class TransitionStrategy implements InstructionStrategy {
   private unsafeRegex = new RegExp(/[\(\)\`]/)
 
   async processInstruction(botId, instruction, event): Promise<ProcessingResult> {
-    const conditionSuccessful = await this.runCode(instruction, {
-      event,
-      user: event.state.user,
-      temp: event.state.temp || {},
-      session: event.state.session
-    })
+    const conditionSuccessful = await this.runCode(instruction, extractEventCommonArgs(event))
 
     if (conditionSuccessful) {
       debug.forBot(

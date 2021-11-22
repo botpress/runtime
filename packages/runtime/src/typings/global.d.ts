@@ -48,6 +48,10 @@ declare namespace NodeJS {
     DISABLE_TRANSITION_SANDBOX: boolean
     DISABLE_CONTENT_SANDBOX: boolean
     WEB_WORKER: number
+    // Used when the runtime is started by the bp server
+    MESSAGING_PORT: number
+    // The internal password is used for inter-process communication
+    INTERNAL_PASSWORD: string
   }
 }
 
@@ -228,6 +232,11 @@ declare interface BotpressEnvironmentVariables {
 
   /** Migration Testing: Set this to true to run completed migrations everytime the server starts */
   readonly TESTMIG_IGNORE_COMPLETED?: boolean
+
+  /**
+   * Supports dumb deployments by allowing disabling file listeners
+   */
+  readonly CORE_DISABLE_FILE_LISTENERS?: boolean
 }
 
 interface IDebug {
@@ -267,8 +276,8 @@ declare interface BotpressCoreEvents {
   bp_core_session_created: { botId: string; channel: string }
   bp_core_send_content: { botId: string; channel: string; source: string; details: string }
   bp_core_enter_flow: { botId: string; channel: string; flowName: string }
-  bp_core_feedback_positive: { botId: string; channel: string; type: string; eventId?: string }
-  bp_core_feedback_negative: { botId: string; channel: string; type: string; eventId?: string }
+  bp_core_feedback_positive: { botId: string; channel: string; type: string; details?: string; eventId?: string }
+  bp_core_feedback_negative: { botId: string; channel: string; type: string; details?: string; eventId?: string }
 }
 
 interface IEmitCoreEvent {

@@ -1,4 +1,5 @@
 import { MessagingClient, uuid } from '@botpress/messaging-client'
+import { AxiosRequestConfig } from 'axios'
 import { IO, Logger, MessagingConfig } from 'botpress/runtime-sdk'
 import { formatUrl, isBpUrl } from 'common/url'
 import { inject, injectable, postConstruct } from 'inversify'
@@ -7,6 +8,7 @@ import ms from 'ms'
 import { ConfigProvider } from 'runtime/config'
 import { EventEngine, Event } from 'runtime/events'
 import { TYPES } from 'runtime/types'
+import yn from 'yn'
 import { MessageNewEventData } from './messaging-router'
 
 @injectable()
@@ -20,7 +22,6 @@ export class MessagingService {
   private collectingCache: LRUCache<string, uuid>
 
   public isExternal: boolean
-  public internalPassword: string | undefined
 
   constructor(
     @inject(TYPES.EventEngine) private eventEngine: EventEngine,
@@ -29,9 +30,22 @@ export class MessagingService {
   ) {
     this.isExternal = Boolean(process.core_env.MESSAGING_ENDPOINT)
     this.collectingCache = new LRUCache<string, uuid>({ max: 5000, maxAge: ms('5m') })
+
+    // use this to test converse from messaging
+    if (yn(process.env.ENABLE_EXPERIMENTAL_CONVERSE)) {
+      this.channelNames.push('messaging')
+    }
   }
 
   async initialize() {
+    this.eventEngine.register({
+      name: 'messaging.fixUrl',
+      description: 'Fix payload url before sending them',
+      order: 99,
+      direction: 'outgoing',
+      handler: this.fixOutgoingUrls.bind(this)
+    })
+
     this.eventEngine.register({
       name: 'messaging.sendOut',
       description: 'Sends outgoing messages to external messaging',
@@ -40,7 +54,7 @@ export class MessagingService {
       handler: this.handleOutgoingEvent.bind(this)
     })
 
-    this.clientSync = new MessagingClient({ url: this.getMessagingUrl() })
+    this.clientSync = new MessagingClient({ url: this.getMessagingUrl(), config: this.getAxiosConfig() })
     this.logger.info(`Using Messaging server at ${this.getMessagingUrl()}`)
   }
 
@@ -49,7 +63,7 @@ export class MessagingService {
     const messaging = (config.messaging || {}) as Partial<MessagingConfig>
 
     const messagingId = messaging.id || ''
-    // ClientId is already used by another botId, we will generate new ones for this bot
+    // ClientId is already used by another botId, we will generate new credentials for this bot
     if (this.botsByClientId[messagingId] && this.botsByClientId[messagingId] !== botId) {
       this.logger.warn(
         `ClientId ${messagingId} already in use by bot ${this.botsByClientId[messagingId]}. Removing channels configuration and generating new credentials for bot ${botId}`
@@ -80,7 +94,8 @@ export class MessagingService {
 
     const botClient = new MessagingClient({
       url: this.getMessagingUrl(),
-      auth: { clientId: messaging.id!, clientToken: messaging.token! }
+      auth: { clientId: messaging.id!, clientToken: messaging.token! },
+      config: this.getAxiosConfig()
     })
     this.clientsByBotId[botId] = botClient
     this.botsByClientId[id] = botId
@@ -104,6 +119,10 @@ export class MessagingService {
   }
 
   async receive(msg: MessageNewEventData) {
+    if (!this.channelNames.includes(msg.channel)) {
+      return
+    }
+
     const event = Event({
       direction: 'incoming',
       type: msg.message.payload.type,
@@ -122,18 +141,21 @@ export class MessagingService {
     return this.eventEngine.sendEvent(event)
   }
 
+  private async fixOutgoingUrls(event: IO.OutgoingEvent, next: IO.MiddlewareNextCallback) {
+    this.fixPayloadUrls(event.payload)
+    next()
+  }
+
   private async handleOutgoingEvent(event: IO.OutgoingEvent, next: IO.MiddlewareNextCallback) {
     if (!this.channelNames.includes(event.channel)) {
       return next(undefined, false, true)
     }
 
-    const payloadAbsoluteUrl = this.convertToAbsoluteUrls(event.payload)
-
     const collecting = event.incomingEventId && this.collectingCache.get(event.incomingEventId)
     const message = await this.clientsByBotId[event.botId].messages.create(
       event.threadId!,
       undefined,
-      payloadAbsoluteUrl,
+      event.payload,
       collecting ? { incomingId: collecting } : undefined
     )
     event.messageId = message.id
@@ -160,14 +182,14 @@ export class MessagingService {
     }
   }
 
-  private convertToAbsoluteUrls(payload: any) {
+  private fixPayloadUrls(payload: any) {
     if (typeof payload !== 'object' || payload === null) {
       if (typeof payload === 'string') {
         payload = payload.replace('BOT_URL', process.EXTERNAL_URL)
       }
 
       if (isBpUrl(payload)) {
-        return formatUrl(process.EXTERNAL_URL, payload)
+        payload = formatUrl(process.EXTERNAL_URL, payload)
       }
       return payload
     }
@@ -175,10 +197,10 @@ export class MessagingService {
     for (const [key, value] of Object.entries(payload)) {
       if (Array.isArray(value)) {
         for (let i = 0; i < value.length; i++) {
-          value[i] = this.convertToAbsoluteUrls(value[i])
+          value[i] = this.fixPayloadUrls(value[i])
         }
       } else {
-        payload[key] = this.convertToAbsoluteUrls(value)
+        payload[key] = this.fixPayloadUrls(value)
       }
     }
 
@@ -186,7 +208,9 @@ export class MessagingService {
   }
 
   public getMessagingUrl() {
-    return process.core_env.MESSAGING_ENDPOINT!
+    return process.core_env.MESSAGING_ENDPOINT
+      ? process.core_env.MESSAGING_ENDPOINT
+      : `http://localhost:${process.MESSAGING_PORT}`
   }
 
   public getWebhookToken(clientId: string) {
@@ -203,5 +227,16 @@ export class MessagingService {
 
   public incrementNewUsersCount() {
     this.newUsers++
+  }
+
+  private getAxiosConfig(): AxiosRequestConfig {
+    const config: AxiosRequestConfig = {}
+
+    if (!this.isExternal) {
+      config.proxy = false
+      config.headers = { password: process.INTERNAL_PASSWORD }
+    }
+
+    return config
   }
 }
